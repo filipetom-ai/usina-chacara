@@ -1,1073 +1,774 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <title>Usina Chácara — Solar Dashboard</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0b1326">
-<link rel="manifest" href="data:application/json,{}">
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<meta name="theme-color" content="#0d1117">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <script>
-tailwind.config = {
-  darkMode: "class",
-  theme: {
-    extend: {
-      colors: {
-        "background": "#0b1326",
-        "on-background": "#dae2fd",
-        "surface-bright": "#31394d",
-        "on-surface-variant": "#c2cab0",
-        "tertiary-container": "#ffc989",
-        "surface-variant": "#2d3449",
-        "surface-container-high": "#222a3d",
-        "primary-fixed-dim": "#98da27",
-        "on-tertiary-container": "#805000",
-        "on-secondary-container": "#00374d",
-        "primary": "#ccff80",
-        "primary-container": "#a3e635",
-        "outline-variant": "#424936",
-        "tertiary": "#ffecd9",
-        "on-primary": "#213600",
-        "on-error-container": "#ffdad6",
-        "surface-container-highest": "#2d3449",
-        "on-surface": "#dae2fd",
-        "surface-container-low": "#131b2e",
-        "secondary-container": "#00a6e0",
-        "error": "#ffb4ab",
-        "on-secondary": "#00354a",
-        "tertiary-fixed-dim": "#ffb95f",
-        "secondary": "#7bd0ff",
-        "surface-container-lowest": "#060e20",
-        "primary-fixed": "#b2f746",
-        "surface": "#0b1326",
-        "surface-container": "#171f33",
-        "outline": "#8c947c",
-        "on-error": "#690005",
-        "secondary-fixed-dim": "#7bd0ff",
-        "on-tertiary": "#472a00"
-      },
-      fontFamily: {
-        "headline": ["Space Grotesk"],
-        "body": ["Inter"],
-        "label": ["Inter"]
-      },
-    },
-  },
-}
+tailwind.config={theme:{extend:{colors:{
+  bg:'#0d1117',bg2:'#161b22',bg3:'#1c2333',bg4:'#21283b',
+  border1:'#30363d',
+  t1:'#f0f6fc',t2:'#8b949e',t3:'#6e7681',
+  sol:'#f5a623',sol2:'#ff8c00',
+  grn:'#3fb950',grn2:'#238636',
+  cyan:'#58a6ff',cyan2:'#1f6feb',
+  red:'#f85149',
+  purple:'#bc8cff',
+},fontFamily:{sans:['Inter']}}}}
 </script>
 <style>
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-  .glow-primary { box-shadow: 0 0 40px -10px rgba(204, 255, 128, 0.3); }
-  body { min-height: 100dvh; }
-  .fade-in { animation: fadeIn .4s ease-out; }
-  @keyframes fadeIn { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
-  .gauge-ring { transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1); }
-  .bar-grow { animation: growUp .6s ease-out forwards; transform-origin: bottom; }
-  @keyframes growUp { from { transform: scaleY(0) } to { transform: scaleY(1) } }
-  #login-screen, #dashboard { transition: opacity .3s ease; }
-  .tab-page { display: none; }
-  .tab-page.active { display: block; }
-  @keyframes pulse-dot { 0%,100% { opacity:1 } 50% { opacity:.4 } }
-  .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
-  .scroll-snap { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-  .scroll-snap > * { scroll-snap-align: start; }
+*{box-sizing:border-box}
+body{background:#0d1117;color:#f0f6fc;font-family:Inter,system-ui,sans-serif;margin:0;min-height:100dvh;-webkit-font-smoothing:antialiased}
+.fade{animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.bar-anim{animation:barGrow .5s ease forwards;transform-origin:bottom}
+@keyframes barGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.progress-bar{height:4px;border-radius:2px;transition:width .8s ease}
+::-webkit-scrollbar{display:none}
+.tab-page{display:none}.tab-page.active{display:block}
+input::placeholder{color:#6e7681}
 </style>
 </head>
-<body class="bg-background text-on-background font-body selection:bg-primary selection:text-on-primary">
+<body>
 
-<!-- LOGIN SCREEN -->
+<!-- ═══ LOGIN ═══ -->
 <div id="login-screen" class="min-h-screen flex items-center justify-center px-6">
-  <div class="w-full max-w-sm space-y-8">
-    <div class="text-center space-y-3">
-      <div class="w-20 h-20 mx-auto rounded-3xl bg-primary/10 flex items-center justify-center">
-        <span class="material-symbols-outlined text-primary text-5xl" style="font-variation-settings:'FILL' 1">solar_power</span>
-      </div>
-      <h1 class="font-headline text-3xl font-black text-primary tracking-tight">Usina Chácara</h1>
-      <p class="font-label text-sm text-on-surface-variant">WEG SIW2000G M075 W1 &middot; SolarZ Cloud</p>
+  <div class="w-full max-w-sm space-y-6 fade">
+    <div class="text-center space-y-2">
+      <div class="text-5xl">☀️</div>
+      <h1 class="text-2xl font-extrabold text-sol">Usina Chácara</h1>
+      <p class="text-t2 text-xs">WEG SIW2000G M075 W1 · SolarZ Cloud</p>
     </div>
-    <div class="bg-surface-container rounded-3xl p-6 space-y-5">
+    <div class="bg-bg2 rounded-2xl p-5 space-y-4 border border-border1">
       <div>
-        <label class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase block mb-2">Email</label>
-        <input id="login-email" type="email" placeholder="seu@email.com"
-               class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-on-surface font-body text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" />
+        <label class="text-[10px] text-t2 uppercase tracking-widest font-semibold block mb-1.5">Email</label>
+        <input id="login-email" type="email" placeholder="seu@email.com" class="w-full bg-bg3 border border-border1 rounded-lg px-3.5 py-2.5 text-t1 text-sm focus:border-sol focus:outline-none"/>
       </div>
       <div>
-        <label class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase block mb-2">Password</label>
-        <input id="login-password" type="password" placeholder="••••••••"
-               class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-on-surface font-body text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" />
+        <label class="text-[10px] text-t2 uppercase tracking-widest font-semibold block mb-1.5">Password</label>
+        <input id="login-password" type="password" placeholder="••••••••" class="w-full bg-bg3 border border-border1 rounded-lg px-3.5 py-2.5 text-t1 text-sm focus:border-sol focus:outline-none"/>
       </div>
-      <div id="login-error" class="hidden text-error text-sm font-label text-center"></div>
-      <button id="login-btn" onclick="doLogin()"
-              class="w-full bg-primary text-on-primary font-label text-xs font-bold py-3.5 rounded-full tracking-widest uppercase hover:scale-[1.02] transition-transform active:scale-95">
-        Connect
-      </button>
+      <div id="login-error" class="hidden text-red text-xs text-center font-medium"></div>
+      <button id="login-btn" onclick="doLogin()" class="w-full bg-sol text-black font-bold text-xs py-3 rounded-lg uppercase tracking-widest hover:bg-sol2 active:scale-[.98] transition-all">Connect</button>
     </div>
-    <p class="text-center text-on-surface-variant text-xs">Filipe Tome Modelski</p>
   </div>
 </div>
 
-<!-- DASHBOARD (hidden until login) -->
+<!-- ═══ DASHBOARD ═══ -->
 <div id="dashboard" class="hidden">
 
-<!-- TopAppBar -->
-<header class="bg-[#0b1326]/80 backdrop-blur-xl fixed top-0 w-full z-50 border-b border-outline-variant/5">
-  <div class="flex justify-between items-center px-5 py-3 w-full mx-auto">
+<!-- Header -->
+<header class="fixed top-0 w-full z-50 bg-bg/90 backdrop-blur-xl border-b border-border1/50">
+  <div class="flex justify-between items-center px-4 py-2.5">
     <div class="flex items-center gap-2">
-      <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings:'FILL' 1">solar_power</span>
-      <h1 class="font-headline text-base font-bold tracking-tight text-primary" id="header-plant">Usina Chácara</h1>
+      <span class="text-lg">☀️</span>
+      <span class="font-bold text-sol text-sm" id="hdr-plant">Usina Chácara</span>
     </div>
-    <div class="flex items-center gap-3">
-      <span id="last-update" class="font-label text-[9px] text-on-surface-variant"></span>
-      <span id="status-icon" class="material-symbols-outlined text-primary text-xl cursor-pointer active:scale-95 duration-200" style="font-variation-settings:'FILL' 1">wifi</span>
+    <div class="flex items-center gap-2">
+      <span id="hdr-time" class="text-[10px] text-t3 font-medium"></span>
+      <div id="hdr-dot" class="w-2 h-2 rounded-full bg-grn"></div>
     </div>
   </div>
 </header>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB: DASHBOARD                                                     -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="tab-dashboard" class="tab-page active pt-16 pb-28 px-4 max-w-2xl mx-auto space-y-5">
+<!-- ══ TAB: HOME ══ -->
+<div id="tab-home" class="tab-page active pt-12 pb-24">
 
-  <!-- Circular Gauge -->
-  <div class="bg-surface-container rounded-3xl p-6 flex flex-col items-center relative overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none"></div>
-    <div class="relative w-full max-w-[260px] aspect-square flex items-center justify-center">
-      <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-        <circle class="text-surface-variant" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-width="2"/>
-        <circle id="gauge-ring" class="text-primary gauge-ring drop-shadow-[0_0_8px_rgba(204,255,128,0.5)]" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" stroke-width="5"/>
-      </svg>
-      <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span class="font-label text-[10px] tracking-[0.2em] text-on-surface-variant">SOLAR GENERATION</span>
-        <div class="flex items-baseline">
-          <span id="gauge-value" class="font-headline text-6xl font-black tracking-tighter text-on-surface">—</span>
-          <span class="font-headline text-xl font-bold text-primary ml-1">kW</span>
-        </div>
-        <div id="gauge-badge" class="mt-3 flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full">
-          <span class="material-symbols-outlined text-sm text-primary" style="font-variation-settings:'FILL' 1">bolt</span>
-          <span id="gauge-label" class="font-label text-[10px] font-bold text-primary tracking-widest uppercase">Connecting…</span>
-        </div>
-      </div>
-    </div>
-    <div class="mt-5 grid grid-cols-3 gap-4 w-full px-2">
-      <div class="space-y-1 text-center">
-        <p class="font-label text-[9px] text-on-surface-variant tracking-widest">VOLTAGE</p>
-        <p id="stat-voltage" class="font-headline text-lg font-bold">—</p>
-      </div>
-      <div class="space-y-1 text-center">
-        <p class="font-label text-[9px] text-on-surface-variant tracking-widest">FREQUENCY</p>
-        <p id="stat-freq" class="font-headline text-lg font-bold">—</p>
-      </div>
-      <div class="space-y-1 text-center">
-        <p class="font-label text-[9px] text-on-surface-variant tracking-widest">TEMP</p>
-        <p id="stat-temp" class="font-headline text-lg font-bold">—</p>
-      </div>
+  <!-- Hero Banner -->
+  <div class="relative w-full h-52 overflow-hidden">
+    <img src="hero.png" alt="Usina Chácara" class="w-full h-full object-cover"/>
+    <div class="absolute inset-0 bg-gradient-to-t from-bg via-bg/60 to-transparent"></div>
+    <div class="absolute bottom-0 left-0 right-0 p-4">
+      <h1 class="text-xl font-extrabold" id="hero-owner">☀️ Filipe Tome Modelski</h1>
+      <p class="text-t2 text-[11px] mt-0.5" id="hero-subtitle">📍 Fazenda Souza, Caxias do Sul – RS · WEG SIW2000G M075 W1</p>
     </div>
   </div>
 
-  <!-- KPI cards row 1 -->
-  <div class="grid grid-cols-2 gap-3">
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Today</p>
-      <p class="font-headline text-2xl font-black"><span id="kpi-today">—</span> <span class="text-xs font-normal text-on-surface-variant">kWh</span></p>
+  <!-- Top KPI row (overlapping hero) -->
+  <div class="px-3 -mt-1 grid grid-cols-4 gap-2">
+    <div class="bg-bg2 rounded-xl p-3 border border-border1 text-center">
+      <p class="text-sol font-extrabold text-lg leading-tight" id="h-today">—</p>
+      <p class="text-[9px] text-t2 mt-0.5">kWh Today</p>
     </div>
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Forecast</p>
-      <p class="font-headline text-2xl font-black"><span id="kpi-forecast">—</span> <span class="text-xs font-normal text-on-surface-variant">kWh</span></p>
+    <div class="bg-bg2 rounded-xl p-3 border border-border1 text-center">
+      <p class="text-sol font-extrabold text-lg leading-tight" id="h-forecast">—</p>
+      <p class="text-[9px] text-t2 mt-0.5">Forecast</p>
     </div>
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Year Total</p>
-      <p class="font-headline text-2xl font-black"><span id="kpi-year">—</span> <span class="text-xs font-normal text-on-surface-variant" id="kpi-year-unit">MWh</span></p>
+    <div class="bg-bg2 rounded-xl p-3 border border-border1 text-center">
+      <p class="text-cyan font-extrabold text-lg leading-tight" id="h-year">—</p>
+      <p class="text-[9px] text-t2 mt-0.5" id="h-year-label">2026 Total</p>
     </div>
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Performance</p>
-      <p class="font-headline text-2xl font-black"><span id="kpi-perf">—</span><span class="text-xs font-normal text-primary">%</span></p>
+    <div class="bg-bg2 rounded-xl p-3 border border-border1 text-center">
+      <p class="font-extrabold text-lg leading-tight" id="h-perf" style="color:#3fb950">—%</p>
+      <p class="text-[9px] text-t2 mt-0.5">Performance</p>
     </div>
   </div>
 
-  <!-- Energy Flow -->
-  <div class="bg-surface-container-low rounded-3xl p-5 relative overflow-hidden border border-outline-variant/5">
-    <h2 class="font-headline text-lg font-bold tracking-tight">Energy Flow</h2>
-    <p class="font-label text-[10px] text-on-surface-variant tracking-wider uppercase">Real-time system</p>
-    <div class="mt-5 relative h-36 w-full flex items-center justify-around">
-      <div class="flex flex-col items-center gap-2">
-        <div class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center border border-primary/20">
-          <span class="material-symbols-outlined text-primary text-2xl">solar_power</span>
+  <div class="px-3 mt-4 space-y-4">
+
+    <!-- Generation KPIs with progress bars -->
+    <div class="grid grid-cols-2 gap-2">
+      <div class="bg-bg2 rounded-xl p-3 border border-border1">
+        <p class="text-sol font-extrabold text-2xl" id="k-today">—<span class="text-sm font-medium text-t2 ml-0.5">kWh</span></p>
+        <p class="text-[10px] text-t2 mt-0.5">Generated Today</p>
+        <div class="w-full bg-bg4 rounded-full mt-2 h-1"><div id="bar-today" class="progress-bar bg-sol" style="width:0%"></div></div>
+      </div>
+      <div class="bg-bg2 rounded-xl p-3 border border-border1">
+        <p class="text-sol font-extrabold text-2xl" id="k-forecast">—<span class="text-sm font-medium text-t2 ml-0.5">kWh</span></p>
+        <p class="text-[10px] text-t2 mt-0.5">Today's Forecast</p>
+        <div class="w-full bg-bg4 rounded-full mt-2 h-1"><div id="bar-forecast" class="progress-bar bg-sol2" style="width:0%"></div></div>
+      </div>
+      <div class="bg-bg2 rounded-xl p-3 border border-border1">
+        <p class="font-extrabold text-2xl" id="k-pct" style="color:#3fb950">—<span class="text-sm font-medium text-t2 ml-0.5">%</span></p>
+        <p class="text-[10px] text-t2 mt-0.5">Today vs Forecast</p>
+        <div class="w-full bg-bg4 rounded-full mt-2 h-1"><div id="bar-pct" class="progress-bar bg-grn" style="width:0%"></div></div>
+      </div>
+      <div class="bg-bg2 rounded-xl p-3 border border-border1">
+        <p class="text-cyan font-extrabold text-2xl" id="k-year">—<span class="text-sm font-medium text-t2 ml-0.5" id="k-year-unit">MWh</span></p>
+        <p class="text-[10px] text-t2 mt-0.5" id="k-year-label">2026 Total Generated</p>
+        <div class="w-full bg-bg4 rounded-full mt-2 h-1"><div id="bar-year" class="progress-bar bg-cyan" style="width:0%"></div></div>
+      </div>
+      <div class="bg-bg2 rounded-xl p-3 border border-border1 col-span-2">
+        <p class="font-extrabold text-2xl" id="k-perf" style="color:#3fb950">—<span class="text-sm font-medium text-t2 ml-0.5">%</span></p>
+        <p class="text-[10px] text-t2 mt-0.5" id="k-perf-label">2026 Performance</p>
+        <div class="w-full bg-bg4 rounded-full mt-2 h-1"><div id="bar-perf" class="progress-bar bg-grn" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Bill & Credits -->
+    <div class="grid grid-cols-2 gap-2">
+      <div class="bg-bg2 rounded-xl p-3 border border-border1">
+        <p class="text-red font-extrabold text-xl" id="k-bill">R$—</p>
+        <p class="text-[10px] text-t2 mt-0.5" id="k-bill-label">Last Bill</p>
+      </div>
+      <div class="bg-bg2 rounded-xl p-3 border border-border1">
+        <p class="text-sol font-extrabold text-xl" id="k-credits-val">R$—</p>
+        <p class="text-[10px] text-t2 mt-0.5">☀️ Solar Credits</p>
+      </div>
+      <div class="bg-bg2 rounded-xl p-3 border border-border1">
+        <p class="text-grn font-extrabold text-xl" id="k-saved-pct">—%</p>
+        <p class="text-[10px] text-t2 mt-0.5">Saved on Energy</p>
+        <div class="w-full bg-bg4 rounded-full mt-2 h-1"><div id="bar-saved" class="progress-bar bg-grn" style="width:0%"></div></div>
+      </div>
+      <div class="bg-bg2 rounded-xl p-3 border border-border1">
+        <p class="text-grn font-extrabold text-xl" id="k-credit-bal">—<span class="text-sm font-medium text-t2 ml-0.5">kWh</span></p>
+        <p class="text-[10px] text-t2 mt-0.5">🏦 Credit Balance</p>
+      </div>
+    </div>
+
+    <!-- Live Inverter Status -->
+    <div class="bg-bg2 rounded-xl p-4 border border-border1">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-sm">⚡ Live Inverter</h3>
+        <span id="inv-status" class="text-[10px] font-bold text-grn bg-grn/10 px-2 py-0.5 rounded-full uppercase">—</span>
+      </div>
+      <div class="grid grid-cols-4 gap-2">
+        <div class="text-center">
+          <p class="text-sol font-extrabold text-lg" id="inv-power">—</p>
+          <p class="text-[9px] text-t3">Power (W)</p>
         </div>
-        <span class="font-label text-[9px] uppercase font-bold text-on-surface-variant">Panels</span>
-        <span id="flow-panels" class="font-headline text-sm font-bold text-primary">— kW</span>
-      </div>
-      <!-- Arrow -->
-      <div class="flex flex-col items-center">
-        <span class="material-symbols-outlined text-primary/40 text-xl">arrow_forward</span>
-      </div>
-      <div class="flex flex-col items-center gap-2">
-        <div class="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center relative">
-          <div id="flow-spinner" class="absolute inset-0 border-2 border-primary border-t-transparent rounded-full animate-spin" style="animation-duration:3s"></div>
-          <span class="material-symbols-outlined text-primary text-2xl">home</span>
+        <div class="text-center">
+          <p class="text-t1 font-extrabold text-lg" id="inv-voltage">—</p>
+          <p class="text-[9px] text-t3">Voltage (V)</p>
         </div>
-        <span class="font-label text-[9px] uppercase font-bold text-primary">Home</span>
-      </div>
-      <!-- Arrow -->
-      <div class="flex flex-col items-center">
-        <span class="material-symbols-outlined text-secondary/40 text-xl">arrow_forward</span>
-      </div>
-      <div class="flex flex-col items-center gap-2">
-        <div class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center border border-secondary/20">
-          <span class="material-symbols-outlined text-secondary text-2xl">electric_meter</span>
+        <div class="text-center">
+          <p class="text-t1 font-extrabold text-lg" id="inv-freq">—</p>
+          <p class="text-[9px] text-t3">Freq (Hz)</p>
         </div>
-        <span class="font-label text-[9px] uppercase font-bold text-on-surface-variant">Grid</span>
-        <span id="flow-grid" class="font-headline text-sm font-bold text-secondary">— kW</span>
+        <div class="text-center">
+          <p class="text-t1 font-extrabold text-lg" id="inv-temp">—</p>
+          <p class="text-[9px] text-t3">Temp (°C)</p>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Today vs Forecast + Savings -->
-  <div class="grid grid-cols-2 gap-3">
-    <div class="bg-surface-container rounded-2xl p-4 flex flex-col justify-between">
-      <div class="flex justify-between items-start">
-        <span class="material-symbols-outlined text-secondary text-xl">speed</span>
-        <span id="pct-badge" class="text-[9px] font-bold text-secondary-container bg-on-secondary-container px-2 py-0.5 rounded-full uppercase">—</span>
+    <!-- Sun info -->
+    <div class="bg-bg2 rounded-xl p-4 border border-border1">
+      <h3 class="font-bold text-sm mb-2">☀️ Sun Today</h3>
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div>
+          <p class="text-sol font-bold text-sm" id="sun-rise">—</p>
+          <p class="text-[9px] text-t3">🌅 Sunrise</p>
+        </div>
+        <div>
+          <p class="text-sol font-bold text-sm" id="sun-noon">—</p>
+          <p class="text-[9px] text-t3">🌞 Solar Noon</p>
+        </div>
+        <div>
+          <p class="text-sol font-bold text-sm" id="sun-set">—</p>
+          <p class="text-[9px] text-t3">🌇 Sunset</p>
+        </div>
       </div>
-      <div class="mt-3">
-        <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Today vs Forecast</p>
-        <h3 class="font-headline text-2xl font-black mt-1"><span id="kpi-pct">—</span><span class="text-xs font-normal">%</span></h3>
+      <div class="text-center mt-2">
+        <p class="text-[10px] text-t2">🌙 Day length: <span id="sun-length" class="text-t1 font-semibold">—</span></p>
       </div>
     </div>
-    <div class="bg-surface-container rounded-2xl p-4 flex flex-col justify-between">
-      <div class="flex justify-between items-start">
-        <span class="material-symbols-outlined text-tertiary-fixed-dim text-xl">savings</span>
-        <span class="text-[9px] font-bold text-on-tertiary-container bg-tertiary-container px-2 py-0.5 rounded-full uppercase">Savings</span>
-      </div>
-      <div class="mt-3">
-        <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Total Saved</p>
-        <h3 class="font-headline text-xl font-black mt-1">R$<span id="kpi-savings">—</span></h3>
-      </div>
-    </div>
-  </div>
 
-  <!-- Bill & Credits row -->
-  <div class="grid grid-cols-3 gap-3">
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Generation</p>
-      <p class="font-headline text-lg font-black text-primary"><span id="kpi-gen-total">—</span></p>
-      <p class="text-[9px] text-on-surface-variant">kWh total</p>
-    </div>
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Consumption</p>
-      <p class="font-headline text-lg font-black text-secondary"><span id="kpi-consumption">—</span></p>
-      <p class="text-[9px] text-on-surface-variant">kWh total</p>
-    </div>
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Credits</p>
-      <p class="font-headline text-lg font-black text-tertiary-fixed-dim"><span id="kpi-credits">—</span></p>
-      <p class="text-[9px] text-on-surface-variant">kWh balance</p>
-    </div>
-  </div>
-
-  <!-- Notifications -->
-  <div id="notifications-container" class="hidden">
-    <h3 class="font-headline text-lg font-bold mb-3">Notifications</h3>
-    <div id="notifications-list" class="space-y-2"></div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB: ANALYTICS                                                     -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="tab-analytics" class="tab-page pt-16 pb-28 px-4 max-w-2xl mx-auto space-y-5">
+<!-- ══ TAB: ANALYTICS ══ -->
+<div id="tab-analytics" class="tab-page pt-12 pb-24 px-3">
+  <div class="mt-3 flex items-center gap-2 mb-3">
+    <div class="w-1 h-5 bg-sol rounded-full"></div>
+    <h2 class="font-bold text-base">📊 Generation Analysis</h2>
+  </div>
 
-  <!-- Period selector -->
-  <div class="flex justify-between items-end">
-    <div>
-      <h2 class="font-headline text-2xl font-black tracking-tighter">Generation</h2>
-      <p id="chart-subtitle" class="text-on-surface-variant font-label text-xs">Last 30 days</p>
-    </div>
-    <div class="flex gap-2">
-      <button onclick="loadChart('day')" id="btn-day" class="chart-btn bg-primary text-on-primary font-label text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest uppercase transition-all active:scale-95">Daily</button>
-      <button onclick="loadChart('week')" id="btn-week" class="chart-btn bg-surface-container text-on-surface-variant font-label text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest uppercase transition-all active:scale-95">Weekly</button>
-      <button onclick="loadChart('month')" id="btn-month" class="chart-btn bg-surface-container text-on-surface-variant font-label text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest uppercase transition-all active:scale-95">Monthly</button>
-    </div>
+  <!-- Period tabs -->
+  <div class="flex gap-1.5 mb-4">
+    <button onclick="loadChart('day')" id="btn-day" class="chart-tab active-tab text-[10px] font-bold px-3 py-1.5 rounded-lg border border-border1 bg-sol text-black">📅 Daily</button>
+    <button onclick="loadChart('week')" id="btn-week" class="chart-tab text-[10px] font-bold px-3 py-1.5 rounded-lg border border-border1 bg-bg2 text-t2">📅 Weekly</button>
+    <button onclick="loadChart('month')" id="btn-month" class="chart-tab text-[10px] font-bold px-3 py-1.5 rounded-lg border border-border1 bg-bg2 text-t2">📊 Monthly</button>
+    <button onclick="loadChart('year')" id="btn-year" class="chart-tab text-[10px] font-bold px-3 py-1.5 rounded-lg border border-border1 bg-bg2 text-t2">📈 Yearly</button>
   </div>
 
   <!-- Chart stats -->
-  <div class="grid grid-cols-3 gap-3">
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Total</p>
-      <p class="font-headline text-xl font-black"><span id="chart-total">—</span> <span class="text-[10px] text-on-surface-variant">kWh</span></p>
+  <div class="grid grid-cols-3 gap-2 mb-3">
+    <div class="bg-bg2 rounded-xl p-3 border border-border1">
+      <p class="text-sol font-extrabold text-lg" id="c-total">—</p>
+      <p class="text-[9px] text-t3">Total kWh</p>
     </div>
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Average</p>
-      <p class="font-headline text-xl font-black"><span id="chart-avg">—</span> <span class="text-[10px] text-on-surface-variant">kWh</span></p>
+    <div class="bg-bg2 rounded-xl p-3 border border-border1">
+      <p class="text-t1 font-extrabold text-lg" id="c-avg">—</p>
+      <p class="text-[9px] text-t3">Average</p>
     </div>
-    <div class="bg-surface-container rounded-2xl p-4 space-y-1">
-      <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Best</p>
-      <p class="font-headline text-xl font-black text-primary"><span id="chart-best">—</span> <span class="text-[10px] text-on-surface-variant">kWh</span></p>
-    </div>
-  </div>
-
-  <!-- Bar chart -->
-  <div class="bg-surface-container rounded-3xl p-5">
-    <div id="chart-container" class="h-48 flex items-end gap-[3px] overflow-x-auto pb-2">
-      <p class="text-on-surface-variant text-sm w-full text-center">Loading…</p>
-    </div>
-    <div id="chart-labels" class="flex justify-between mt-2 text-[9px] font-bold text-on-surface-variant tracking-[0.15em] px-1 overflow-x-auto"></div>
-  </div>
-
-  <!-- Consumption vs Generation chart -->
-  <div>
-    <h3 class="font-headline text-lg font-bold tracking-tight mb-3">Monthly Overview</h3>
-    <p class="font-label text-[10px] text-on-surface-variant tracking-wider uppercase mb-3">Generation vs Consumption vs Credits</p>
-  </div>
-  <div class="bg-surface-container rounded-3xl p-5">
-    <div id="monthly-chart" class="h-48 flex items-end gap-1 overflow-x-auto pb-2">
-      <p class="text-on-surface-variant text-sm w-full text-center">Loading…</p>
-    </div>
-    <div id="monthly-labels" class="flex justify-between mt-2 text-[9px] font-bold text-on-surface-variant tracking-[0.15em] px-1"></div>
-    <div class="flex gap-4 mt-3 justify-center">
-      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded bg-primary/80"></div><span class="text-[9px] text-on-surface-variant">Generated</span></div>
-      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded bg-secondary/80"></div><span class="text-[9px] text-on-surface-variant">Consumed</span></div>
-      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded bg-tertiary-fixed-dim/80"></div><span class="text-[9px] text-on-surface-variant">Credits</span></div>
+    <div class="bg-bg2 rounded-xl p-3 border border-border1">
+      <p class="text-grn font-extrabold text-lg" id="c-best">—</p>
+      <p class="text-[9px] text-t3">Best</p>
     </div>
   </div>
 
-  <!-- Top / Bottom days -->
-  <div class="grid grid-cols-1 gap-3">
-    <div class="bg-surface-container rounded-2xl p-4">
-      <h4 class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase mb-3">Top Days</h4>
-      <div id="top-days" class="space-y-2 text-sm"></div>
+  <!-- Chart -->
+  <div class="bg-bg2 rounded-xl p-4 border border-border1 mb-3">
+    <div id="chart-box" class="h-44 flex items-end gap-[2px] overflow-x-auto"><p class="text-t3 text-sm w-full text-center">Loading…</p></div>
+    <div id="chart-labels" class="flex justify-between mt-2 text-[8px] text-t3 font-semibold px-0.5"></div>
+  </div>
+
+  <!-- Consumption vs Generation -->
+  <div class="flex items-center gap-2 mb-2 mt-4">
+    <div class="w-1 h-5 bg-cyan rounded-full"></div>
+    <h3 class="font-bold text-sm">Generation vs Consumption</h3>
+  </div>
+  <div class="bg-bg2 rounded-xl p-4 border border-border1 mb-2">
+    <div id="monthly-chart" class="h-36 flex items-end gap-1 overflow-x-auto"><p class="text-t3 text-sm w-full text-center">Loading…</p></div>
+    <div id="monthly-labels" class="flex justify-between mt-2 text-[8px] text-t3 font-semibold px-0.5"></div>
+    <div class="flex gap-3 mt-2 justify-center">
+      <span class="flex items-center gap-1 text-[9px] text-t2"><span class="w-2.5 h-2.5 rounded-sm bg-sol inline-block"></span>Generated</span>
+      <span class="flex items-center gap-1 text-[9px] text-t2"><span class="w-2.5 h-2.5 rounded-sm bg-cyan inline-block"></span>Consumed</span>
+      <span class="flex items-center gap-1 text-[9px] text-t2"><span class="w-2.5 h-2.5 rounded-sm bg-grn inline-block"></span>Credits</span>
     </div>
+  </div>
+
+  <!-- Top days -->
+  <div class="bg-bg2 rounded-xl p-4 border border-border1">
+    <h4 class="text-[10px] text-t2 uppercase tracking-widest font-bold mb-2">🏆 Top Days</h4>
+    <div id="top-days" class="space-y-1.5"></div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB: DEVICES                                                       -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="tab-devices" class="tab-page pt-16 pb-28 px-4 max-w-2xl mx-auto space-y-5">
+<!-- ══ TAB: DEVICES ══ -->
+<div id="tab-devices" class="tab-page pt-14 pb-24 px-3 space-y-3">
+  <h2 class="font-bold text-base">🔌 Devices & System</h2>
 
-  <h2 class="font-headline text-2xl font-black tracking-tighter">Devices</h2>
-
-  <!-- Inverter -->
-  <div class="bg-surface-container-low p-5 rounded-3xl space-y-4">
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-secondary bg-secondary/10 p-2.5 rounded-xl">bolt</span>
-      <div>
-        <h4 class="font-headline font-bold">WEG SIW2000G</h4>
-        <p class="font-label text-[10px] text-on-surface-variant">M075 W1 Single-Phase Inverter</p>
-      </div>
+  <div class="bg-bg2 rounded-xl p-4 border border-border1 space-y-3">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">⚡</span>
+      <div><p class="font-bold text-sm">WEG SIW2000G M075 W1</p><p class="text-[10px] text-t3">Single-Phase String Inverter</p></div>
     </div>
-    <div class="grid grid-cols-2 gap-3">
-      <div class="bg-surface-container rounded-xl p-3">
-        <p class="text-[9px] text-on-surface-variant uppercase tracking-widest">Status</p>
-        <p id="dev-inverter-status" class="font-bold text-primary mt-1">—</p>
-      </div>
-      <div class="bg-surface-container rounded-xl p-3">
-        <p class="text-[9px] text-on-surface-variant uppercase tracking-widest">Last Comm</p>
-        <p id="dev-inverter-comm" class="font-bold text-on-surface mt-1">—</p>
-      </div>
-      <div class="bg-surface-container rounded-xl p-3">
-        <p class="text-[9px] text-on-surface-variant uppercase tracking-widest">Power Now</p>
-        <p id="dev-inverter-power" class="font-bold text-primary mt-1">—</p>
-      </div>
-      <div class="bg-surface-container rounded-xl p-3">
-        <p class="text-[9px] text-on-surface-variant uppercase tracking-widest">Temperature</p>
-        <p id="dev-inverter-temp" class="font-bold text-on-surface mt-1">—</p>
-      </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="bg-bg3 rounded-lg p-2.5"><p class="text-[9px] text-t3">Status</p><p id="d-inv-status" class="font-bold text-grn text-sm">—</p></div>
+      <div class="bg-bg3 rounded-lg p-2.5"><p class="text-[9px] text-t3">Last Comm</p><p id="d-inv-comm" class="font-bold text-t1 text-sm">—</p></div>
+      <div class="bg-bg3 rounded-lg p-2.5"><p class="text-[9px] text-t3">Power</p><p id="d-inv-power" class="font-bold text-sol text-sm">—</p></div>
+      <div class="bg-bg3 rounded-lg p-2.5"><p class="text-[9px] text-t3">Temperature</p><p id="d-inv-temp" class="font-bold text-t1 text-sm">—</p></div>
     </div>
   </div>
 
-  <!-- Solar Array -->
-  <div class="bg-surface-container-low p-5 rounded-3xl space-y-4">
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-primary-fixed-dim bg-primary/10 p-2.5 rounded-xl">solar_power</span>
-      <div>
-        <h4 class="font-headline font-bold" id="dev-plant-name">Solar Array</h4>
-        <p class="font-label text-[10px] text-on-surface-variant" id="dev-plant-info">—</p>
-      </div>
+  <div class="bg-bg2 rounded-xl p-4 border border-border1 space-y-3">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">☀️</span>
+      <div><p class="font-bold text-sm" id="d-plant-name">Solar Array</p><p class="text-[10px] text-t3" id="d-plant-info">—</p></div>
     </div>
-    <div class="grid grid-cols-2 gap-3">
-      <div class="bg-surface-container rounded-xl p-3">
-        <p class="text-[9px] text-on-surface-variant uppercase tracking-widest">Performance</p>
-        <p id="dev-perf" class="text-primary font-bold mt-1">—</p>
-      </div>
-      <div class="bg-surface-container rounded-xl p-3">
-        <p class="text-[9px] text-on-surface-variant uppercase tracking-widest">Capacity</p>
-        <p id="dev-capacity" class="font-bold text-on-surface mt-1">—</p>
-      </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="bg-bg3 rounded-lg p-2.5"><p class="text-[9px] text-t3">Performance</p><p id="d-perf" class="font-bold text-grn text-sm">—</p></div>
+      <div class="bg-bg3 rounded-lg p-2.5"><p class="text-[9px] text-t3">Capacity</p><p id="d-capacity" class="font-bold text-t1 text-sm">—</p></div>
     </div>
-    <div class="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
-      <div id="dev-perf-bar" class="bg-primary h-full rounded-full transition-all duration-700" style="width:0%"></div>
-    </div>
+    <div class="w-full bg-bg4 h-1.5 rounded-full"><div id="d-perf-bar" class="progress-bar bg-grn h-1.5 rounded-full" style="width:0%"></div></div>
   </div>
 
-  <!-- Data Logger -->
-  <div class="bg-surface-container-low p-5 rounded-3xl space-y-4">
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-on-surface-variant bg-surface-container-high/50 p-2.5 rounded-xl">router</span>
-      <div>
-        <h4 class="font-headline font-bold">SMART WB Data Logger</h4>
-        <p class="font-label text-[10px] text-on-surface-variant">Wi-Fi monitoring module</p>
-      </div>
-    </div>
-    <div class="flex justify-between items-center text-sm">
-      <span class="text-on-surface-variant">Connection</span>
-      <span id="dev-logger-status" class="font-bold text-primary">—</span>
-    </div>
+  <div class="bg-bg2 rounded-xl p-4 border border-border1 space-y-3">
+    <div class="flex items-center gap-2"><span class="text-lg">📡</span><div><p class="font-bold text-sm">SMART WB Data Logger</p><p class="text-[10px] text-t3">Wi-Fi monitoring module</p></div></div>
+    <div class="flex justify-between text-sm"><span class="text-t2">Connection</span><span id="d-logger" class="font-bold text-grn">—</span></div>
   </div>
 
-  <!-- Last Report -->
-  <div class="bg-surface-container-low p-5 rounded-3xl space-y-3">
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-tertiary-fixed-dim bg-tertiary-container/10 p-2.5 rounded-xl">summarize</span>
-      <h4 class="font-headline font-bold">Last Report</h4>
-    </div>
-    <div id="report-content" class="grid grid-cols-2 gap-3"></div>
+  <div class="bg-bg2 rounded-xl p-4 border border-border1">
+    <h3 class="font-bold text-sm mb-2">📋 Last Report</h3>
+    <div id="report-grid" class="grid grid-cols-2 gap-2"></div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB: IMPACT                                                        -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="tab-impact" class="tab-page pt-16 pb-28 px-4 max-w-2xl mx-auto space-y-5">
+<!-- ══ TAB: IMPACT ══ -->
+<div id="tab-impact" class="tab-page pt-14 pb-24 px-3 space-y-3">
+  <h2 class="font-bold text-base">🌍 Environmental Impact</h2>
 
-  <h2 class="font-headline text-2xl font-black tracking-tighter">Environmental Impact</h2>
-
-  <!-- Big CO2 card -->
-  <div class="bg-gradient-to-br from-primary/10 to-surface-container rounded-3xl p-6 text-center space-y-3">
-    <span class="material-symbols-outlined text-primary text-5xl" style="font-variation-settings:'FILL' 1">eco</span>
-    <p class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase">CO2 Avoided</p>
-    <p class="font-headline text-5xl font-black text-primary"><span id="impact-co2">—</span></p>
-    <p class="text-on-surface-variant text-sm" id="impact-co2-unit">kg CO₂</p>
+  <div class="bg-gradient-to-br from-grn2/20 to-bg2 rounded-xl p-5 border border-grn/20 text-center">
+    <p class="text-4xl mb-1">🌱</p>
+    <p class="text-[10px] text-t2 uppercase tracking-widest font-bold">CO₂ Avoided</p>
+    <p class="text-4xl font-black text-grn mt-1" id="i-co2">—</p>
+    <p class="text-t2 text-xs" id="i-co2-unit">kg CO₂</p>
   </div>
 
-  <div class="grid grid-cols-2 gap-3">
-    <div class="bg-surface-container rounded-2xl p-5 text-center space-y-2">
-      <span class="material-symbols-outlined text-primary-fixed-dim text-3xl">park</span>
-      <p class="font-headline text-3xl font-black"><span id="impact-trees">—</span></p>
-      <p class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase">Trees Equivalent</p>
+  <div class="grid grid-cols-2 gap-2">
+    <div class="bg-bg2 rounded-xl p-4 border border-border1 text-center">
+      <p class="text-2xl mb-1">🌳</p>
+      <p class="text-2xl font-black text-grn" id="i-trees">—</p>
+      <p class="text-[9px] text-t2">Trees Equivalent</p>
     </div>
-    <div class="bg-surface-container rounded-2xl p-5 text-center space-y-2">
-      <span class="material-symbols-outlined text-secondary text-3xl">electric_car</span>
-      <p class="font-headline text-3xl font-black"><span id="impact-km">—</span></p>
-      <p class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase">EV km Equivalent</p>
+    <div class="bg-bg2 rounded-xl p-4 border border-border1 text-center">
+      <p class="text-2xl mb-1">🚗</p>
+      <p class="text-2xl font-black text-cyan" id="i-km">—</p>
+      <p class="text-[9px] text-t2">EV km Equivalent</p>
     </div>
   </div>
 
-  <!-- Savings breakdown -->
-  <div class="bg-surface-container-low rounded-3xl p-5 space-y-4 border border-outline-variant/5">
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-tertiary-fixed-dim text-2xl">savings</span>
-      <h3 class="font-headline text-lg font-bold">Financial Savings</h3>
+  <div class="bg-bg2 rounded-xl p-4 border border-border1">
+    <h3 class="font-bold text-sm mb-3">💰 Financial Savings</h3>
+    <div class="space-y-2.5">
+      <div class="flex justify-between"><span class="text-t2 text-sm">Total Saved</span><span id="i-savings" class="font-extrabold text-sol text-lg">R$ —</span></div>
+      <div class="flex justify-between"><span class="text-t2 text-sm">Total Return</span><span id="i-return" class="font-bold text-t1">R$ —</span></div>
     </div>
-    <div class="space-y-3">
-      <div class="flex justify-between items-center">
-        <span class="text-on-surface-variant text-sm">Total Saved</span>
-        <span id="impact-savings-total" class="font-headline text-xl font-black text-tertiary-fixed-dim">R$ —</span>
-      </div>
-      <div class="flex justify-between items-center">
-        <span class="text-on-surface-variant text-sm">Total Return</span>
-        <span id="impact-return" class="font-bold text-on-surface">R$ —</span>
-      </div>
-    </div>
-    <!-- Monthly savings chart -->
-    <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase mt-4">Monthly Savings</p>
-    <div id="savings-chart" class="h-32 flex items-end gap-[3px] overflow-x-auto pb-2"></div>
-    <div id="savings-labels" class="flex justify-between mt-1 text-[9px] font-bold text-on-surface-variant tracking-[0.15em] px-1"></div>
+    <p class="text-[10px] text-t3 uppercase tracking-widest font-bold mt-4 mb-2">Monthly Savings</p>
+    <div id="savings-chart" class="h-28 flex items-end gap-[2px] overflow-x-auto"></div>
+    <div id="savings-labels" class="flex justify-between mt-1 text-[8px] text-t3 font-semibold"></div>
   </div>
 
-  <!-- Total generation impact -->
-  <div class="bg-surface-container rounded-2xl p-5 space-y-3">
-    <h4 class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase">Lifetime Generation</h4>
-    <p class="font-headline text-3xl font-black"><span id="impact-total-gen">—</span> <span class="text-sm text-on-surface-variant" id="impact-total-unit">kWh</span></p>
-    <div class="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
-      <div id="impact-gen-bar" class="bg-primary h-full rounded-full transition-all duration-700" style="width:0%"></div>
-    </div>
-    <p class="text-[10px] text-on-surface-variant">System capacity: <span id="impact-capacity">—</span>W</p>
+  <div class="bg-bg2 rounded-xl p-4 border border-border1">
+    <p class="text-[10px] text-t3 uppercase tracking-widest font-bold mb-1">Lifetime Generation</p>
+    <p class="text-2xl font-black text-sol"><span id="i-total-gen">—</span> <span class="text-sm text-t2" id="i-total-unit">kWh</span></p>
+    <div class="w-full bg-bg4 h-1.5 rounded-full mt-2"><div id="i-gen-bar" class="progress-bar bg-sol h-1.5 rounded-full" style="width:0%"></div></div>
   </div>
 </div>
 
-<!-- Bottom Nav (Mobile) -->
-<nav class="bg-[#131b2e]/95 backdrop-blur-2xl fixed bottom-0 left-0 w-full flex justify-around items-center px-2 pb-6 pt-2 z-50 rounded-t-2xl border-t border-outline-variant/10">
-  <button onclick="switchTab('dashboard')" data-tab="dashboard" class="nav-btn flex flex-col items-center justify-center rounded-2xl px-4 py-2 text-primary bg-surface-container-high scale-105 transition-all">
-    <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1">dashboard</span>
-    <span class="font-label text-[9px] uppercase tracking-widest font-bold mt-0.5">Dashboard</span>
-  </button>
-  <button onclick="switchTab('analytics')" data-tab="analytics" class="nav-btn flex flex-col items-center justify-center rounded-2xl px-4 py-2 text-on-surface-variant transition-all">
-    <span class="material-symbols-outlined text-xl">insights</span>
-    <span class="font-label text-[9px] uppercase tracking-widest font-bold mt-0.5">Analytics</span>
-  </button>
-  <button onclick="switchTab('devices')" data-tab="devices" class="nav-btn flex flex-col items-center justify-center rounded-2xl px-4 py-2 text-on-surface-variant transition-all">
-    <span class="material-symbols-outlined text-xl">settings_input_component</span>
-    <span class="font-label text-[9px] uppercase tracking-widest font-bold mt-0.5">Devices</span>
-  </button>
-  <button onclick="switchTab('impact')" data-tab="impact" class="nav-btn flex flex-col items-center justify-center rounded-2xl px-4 py-2 text-on-surface-variant transition-all">
-    <span class="material-symbols-outlined text-xl">eco</span>
-    <span class="font-label text-[9px] uppercase tracking-widest font-bold mt-0.5">Impact</span>
-  </button>
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-bg2/95 backdrop-blur-xl border-t border-border1/50 pb-5 pt-1.5 px-2">
+  <div class="flex justify-around">
+    <button onclick="switchTab('home')" data-tab="home" class="nav-btn flex flex-col items-center px-3 py-1 rounded-xl text-sol bg-sol/10">
+      <span class="text-lg">🏠</span><span class="text-[9px] font-bold mt-0.5">Home</span>
+    </button>
+    <button onclick="switchTab('analytics')" data-tab="analytics" class="nav-btn flex flex-col items-center px-3 py-1 rounded-xl text-t3">
+      <span class="text-lg">📊</span><span class="text-[9px] font-bold mt-0.5">Analytics</span>
+    </button>
+    <button onclick="switchTab('devices')" data-tab="devices" class="nav-btn flex flex-col items-center px-3 py-1 rounded-xl text-t3">
+      <span class="text-lg">🔌</span><span class="text-[9px] font-bold mt-0.5">Devices</span>
+    </button>
+    <button onclick="switchTab('impact')" data-tab="impact" class="nav-btn flex flex-col items-center px-3 py-1 rounded-xl text-t3">
+      <span class="text-lg">🌍</span><span class="text-[9px] font-bold mt-0.5">Impact</span>
+    </button>
+  </div>
 </nav>
 
 <!-- Refresh FAB -->
-<button onclick="refreshAll()" id="refresh-fab" class="fixed bottom-24 right-5 bg-primary text-on-primary w-12 h-12 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 duration-200 z-40 glow-primary" title="Refresh data">
-  <span id="fab-icon" class="material-symbols-outlined text-xl transition-transform">refresh</span>
+<button onclick="refreshAll()" class="fixed bottom-20 right-3 bg-sol text-black w-11 h-11 rounded-full flex items-center justify-center shadow-lg shadow-sol/20 active:scale-90 transition-transform z-40">
+  <span id="fab-icon" class="text-lg transition-transform">🔄</span>
 </button>
 
-</div><!-- /dashboard -->
+</div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
-<!-- APPLICATION LOGIC                                                          -->
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
 <script>
-// ═══════════════════════════════════════════════════════════════════════════════
-// SolarZ API — Direct browser calls
-// ═══════════════════════════════════════════════════════════════════════════════
-const SZ = 'https://app.solarz.com.br';
-let token = '', usinaId = '', usinaUuid = '', plantInfo = {}, refreshTimer = null;
+// ── API Layer (uses Flask proxy) ────────────────────────────────
+const API = '';  // same-origin Flask proxy
+let plantInfo = {}, refreshTimer = null;
 
-const szHeaders = () => ({
-  'Accept': 'application/json',
-  'Content-Type': 'application/json',
-  'Authorization': 'Bearer ' + token,
-});
-
-async function szGet(path, params = {}) {
-  const url = new URL(SZ + path);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  const res = await fetch(url, { headers: szHeaders() });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, opts);
+  if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
   return res.json();
 }
 
-// ── Tab navigation ─────────────────────────────────────────────────────────
+// ── Tab nav ─────────────────────────────────────────────────────
+let analyticsLoaded = false;
 function switchTab(tab) {
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-
   document.querySelectorAll('.nav-btn').forEach(b => {
-    const isActive = b.dataset.tab === tab;
-    b.className = 'nav-btn flex flex-col items-center justify-center rounded-2xl px-4 py-2 transition-all ' +
-      (isActive ? 'text-primary bg-surface-container-high scale-105' : 'text-on-surface-variant');
-    b.querySelector('.material-symbols-outlined').style.fontVariationSettings =
-      isActive ? "'FILL' 1" : "'FILL' 0";
+    const a = b.dataset.tab === tab;
+    b.className = 'nav-btn flex flex-col items-center px-3 py-1 rounded-xl ' + (a ? 'text-sol bg-sol/10' : 'text-t3');
   });
-
-  // Lazy-load data for tabs
-  if (tab === 'analytics' && !chartLoaded) { loadChart(currentPeriod); loadMonthlyOverview(); }
-  if (tab === 'devices' && !devicesLoaded) { loadReport(); devicesLoaded = true; }
-  if (tab === 'impact' && !impactLoaded) { loadEconomyDetails(); impactLoaded = true; }
+  if (tab === 'analytics' && !analyticsLoaded) { analyticsLoaded = true; loadChart('day'); loadMonthly(); }
+  if (tab === 'devices') loadReport();
 }
 
-let chartLoaded = false, devicesLoaded = false, impactLoaded = false;
-
-// ── Login ────────────────────────────────────────────────────────────────────
+// ── Login ───────────────────────────────────────────────────────
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
-  const pw    = document.getElementById('login-password').value;
-  const errEl = document.getElementById('login-error');
-  const btn   = document.getElementById('login-btn');
-
-  if (!email || !pw) { errEl.textContent = 'Enter email and password'; errEl.classList.remove('hidden'); return; }
-
-  btn.textContent = 'CONNECTING…';
-  btn.disabled = true;
-  errEl.classList.add('hidden');
-
+  const pw = document.getElementById('login-password').value;
+  const err = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if (!email || !pw) { err.textContent = 'Enter email and password'; err.classList.remove('hidden'); return; }
+  btn.textContent = 'CONNECTING…'; btn.disabled = true; err.classList.add('hidden');
   try {
-    // 1. Authenticate
-    const authRes = await fetch(SZ + '/cliente/authenticate', {
+    const d = await api('/api/login', {
       method: 'POST',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: email, password: pw })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw })
     });
-    const authData = await authRes.json();
+    if (!d.ok) throw new Error(d.error || 'Login failed');
+    plantInfo = d.plant || {};
+    document.getElementById('hdr-plant').textContent = plantInfo.name || 'Usina Chácara';
+    document.getElementById('hero-owner').textContent = '☀️ ' + (d.owner || 'Filipe Tome Modelski');
+    document.getElementById('d-plant-name').textContent = plantInfo.name || 'Solar Array';
+    document.getElementById('d-plant-info').textContent = (plantInfo.power || '—') + 'W · ' + (plantInfo.modules || '—') + ' modules';
+    document.getElementById('d-capacity').textContent = (plantInfo.power || '—') + 'W';
 
-    if (!authData.token) {
-      errEl.textContent = authData.error || 'Invalid credentials';
-      errEl.classList.remove('hidden');
-      btn.textContent = 'CONNECT'; btn.disabled = false;
-      return;
-    }
-    token = authData.token;
-
-    // 2. Get client context (plant IDs)
-    const ctx = await szGet('/cliente/context');
-    const usinas = ctx.usinas || [];
-    const plant = usinas[0] || {};
-    usinaId   = plant.id || '';
-    usinaUuid = plant.uuid || '';
-
-    plantInfo = {
-      name:    plant.nome || 'Usina Chácara',
-      power:   plant.potencia || 0,
-      modules: plant.quantidadeModulos || 0,
-      owner:   ctx.nome || '',
-    };
-
-    document.getElementById('header-plant').textContent = plantInfo.name;
-    document.getElementById('dev-plant-name').textContent = plantInfo.name;
-    document.getElementById('dev-plant-info').textContent =
-      `${plantInfo.power || '—'}W · ${plantInfo.modules || '—'} modules`;
-    document.getElementById('dev-capacity').textContent = plantInfo.power + 'W';
-    document.getElementById('impact-capacity').textContent = plantInfo.power;
-
-    // Switch screens
     document.getElementById('login-screen').style.opacity = '0';
     setTimeout(() => {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('dashboard').classList.remove('hidden');
-      setTimeout(() => refreshAll(), 100);
+      refreshAll();
     }, 300);
-
     refreshTimer = setInterval(refreshAll, 5 * 60 * 1000);
-
   } catch (e) {
-    errEl.textContent = 'Connection error: ' + e.message;
-    errEl.classList.remove('hidden');
+    err.textContent = e.message; err.classList.remove('hidden');
     btn.textContent = 'CONNECT'; btn.disabled = false;
   }
 }
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && !document.getElementById('login-screen').classList.contains('hidden')) doLogin(); });
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !document.getElementById('login-screen').classList.contains('hidden')) doLogin();
-});
-
-// ── Refresh all data ─────────────────────────────────────────────────────────
+// ── Refresh ─────────────────────────────────────────────────────
 async function refreshAll() {
-  const fab = document.getElementById('fab-icon');
-  fab.style.transform = 'rotate(360deg)';
-  setTimeout(() => fab.style.transform = '', 700);
-
-  await Promise.allSettled([
-    loadStatus(),
-    loadToday(),
-    loadEconomy(),
-    loadUnits(),
-    loadNotifications(),
-  ]);
-
-  // Update timestamp
-  document.getElementById('last-update').textContent =
-    new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-
-  // Refresh active tab data
-  if (document.getElementById('tab-analytics').classList.contains('active')) {
-    loadChart(currentPeriod);
-    loadMonthlyOverview();
-  }
+  document.getElementById('fab-icon').style.transform = 'rotate(360deg)';
+  setTimeout(() => document.getElementById('fab-icon').style.transform = '', 600);
+  await Promise.allSettled([loadStatus(), loadToday(), loadEconomy(), loadUnits(), loadSunInfo()]);
+  document.getElementById('hdr-time').textContent = new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  if (analyticsLoaded) { loadChart(currentPeriod); loadMonthly(); }
 }
 
-// ── Real-time status (gauge) ─────────────────────────────────────────────────
+// ── Status ──────────────────────────────────────────────────────
 async function loadStatus() {
   try {
-    // Try the shareable endpoint first
-    let d;
-    try {
-      d = await szGet('/shareable/currently/usina', { id: usinaId });
-    } catch (e1) {
-      // Fallback: use lastReport endpoint
-      try {
-        d = await szGet(`/api-sz/app/cliente/plant/${usinaUuid}/lastReport`);
-      } catch (e2) {
-        console.warn('Both status endpoints failed:', e1.message, e2.message);
-        // Final fallback: set gauge from today's data if available
-        const todayVal = document.getElementById('kpi-today').textContent;
-        if (todayVal !== '—') {
-          document.getElementById('gauge-label').textContent = 'Data Loaded';
-        }
-        return;
-      }
-    }
-
-    const power   = parseFloat(d.potenciaAtiva || d.potencia || d.geracaoAtual || 0);
-    const voltage = parseFloat(d.tensaoRede || d.voltage || d.tensao || 0);
-    const freq    = parseFloat(d.frequenciaRede || d.frequency || d.frequencia || 0);
-    const temp    = parseFloat(d.temperatura || d.temperaturaInversor || 0);
-    const online  = d.online !== false && d.online !== undefined ? d.online : true;
-
-    const maxKw = (plantInfo.power || 2000) / 1000;
+    const d = await api('/api/status');
+    const power = parseFloat(d.potenciaAtiva || d.potencia || 0);
+    const voltage = parseFloat(d.tensaoRede || d.voltage || 0);
+    const freq = parseFloat(d.frequenciaRede || d.frequency || 0);
+    const temp = parseFloat(d.temperatura || d.temperaturaInversor || 0);
+    const online = d.online !== false;
     const kw = power / 1000;
-    const pct = Math.min(kw / maxKw, 1);
-    const offset = 283 - (283 * pct);
-    document.getElementById('gauge-ring').setAttribute('stroke-dashoffset', offset);
-    document.getElementById('gauge-value').textContent = kw.toFixed(1);
 
-    const label = document.getElementById('gauge-label');
-    if (kw > maxKw * 0.9)       { label.textContent = 'Peak Output'; }
-    else if (kw > maxKw * 0.5)  { label.textContent = 'Generating'; }
-    else if (kw > 0.01)         { label.textContent = 'Low Output'; }
-    else                        { label.textContent = online ? 'Standby' : 'Offline'; }
-
-    document.getElementById('stat-voltage').textContent = voltage ? voltage.toFixed(0) + 'V' : '—';
-    document.getElementById('stat-freq').textContent = freq ? freq.toFixed(1) + ' Hz' : '—';
-    document.getElementById('stat-temp').textContent = temp ? temp.toFixed(0) + '°C' : '—';
-    document.getElementById('flow-panels').textContent = kw.toFixed(1) + ' kW';
-    document.getElementById('flow-grid').textContent = '0.0 kW';
+    // Live inverter card
+    document.getElementById('inv-power').textContent = power > 0 ? power.toFixed(0) : '0';
+    document.getElementById('inv-voltage').textContent = voltage ? voltage.toFixed(0) : '—';
+    document.getElementById('inv-freq').textContent = freq ? freq.toFixed(1) : '—';
+    document.getElementById('inv-temp').textContent = temp ? temp.toFixed(0) : '—';
+    const st = document.getElementById('inv-status');
+    st.textContent = online ? (power > 0 ? 'GENERATING' : 'STANDBY') : 'OFFLINE';
+    st.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ' +
+      (online ? 'text-grn bg-grn/10' : 'text-red bg-red/10');
+    document.getElementById('hdr-dot').className = 'w-2 h-2 rounded-full ' + (online ? 'bg-grn' : 'bg-red');
 
     // Devices tab
-    document.getElementById('dev-inverter-status').textContent = online ? 'Online' : 'Offline';
-    document.getElementById('dev-inverter-status').className = 'font-bold ' + (online ? 'text-primary' : 'text-error');
-    document.getElementById('dev-inverter-power').textContent = kw.toFixed(2) + ' kW';
-    document.getElementById('dev-inverter-temp').textContent = temp ? temp.toFixed(0) + '°C' : '—';
-    document.getElementById('dev-logger-status').textContent = online ? 'Connected' : 'Disconnected';
-    document.getElementById('dev-logger-status').className = 'font-bold ' + (online ? 'text-primary' : 'text-error');
+    document.getElementById('d-inv-status').textContent = online ? 'Online' : 'Offline';
+    document.getElementById('d-inv-status').className = 'font-bold text-sm ' + (online ? 'text-grn' : 'text-red');
+    document.getElementById('d-inv-power').textContent = kw.toFixed(2) + ' kW';
+    document.getElementById('d-inv-temp').textContent = temp ? temp.toFixed(0) + '°C' : '—';
+    document.getElementById('d-logger').textContent = online ? 'Connected' : 'Disconnected';
+    document.getElementById('d-logger').className = 'font-bold ' + (online ? 'text-grn' : 'text-red');
 
-    const si = document.getElementById('status-icon');
-    si.textContent = online ? 'wifi' : 'wifi_off';
-    si.className = 'material-symbols-outlined text-xl cursor-pointer active:scale-95 duration-200 ' + (online ? 'text-primary' : 'text-error');
-    si.style.fontVariationSettings = "'FILL' 1";
-
-    const commTime = d.dataHoraUltimaComunicacao || d.dataUltimaComunicacao || d.ultimaComunicacao;
-    if (commTime) {
-      const dt = new Date(commTime);
-      document.getElementById('dev-inverter-comm').textContent =
-        dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (d.dataHoraUltimaComunicacao) {
+      document.getElementById('d-inv-comm').textContent = new Date(d.dataHoraUltimaComunicacao).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
     }
-  } catch (e) { console.warn('Status fetch failed:', e); }
+  } catch (e) { console.warn('Status:', e); }
 }
 
-// ── Today's generation ───────────────────────────────────────────────────────
+// ── Today ───────────────────────────────────────────────────────
 async function loadToday() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const d = await szGet('/api-sz/generation/day', { usinaId, day: today, unitePortals: 'true' });
-
-    const todayKwh = parseFloat(d.totalGerado || 0);
+    const d = await api('/api/today');
+    const gen = parseFloat(d.totalGerado || 0);
     const progs = d.prognosticos || {};
-    const forecast = parseFloat(Object.values(progs)[0] || 0);
-    const pct = forecast > 0 ? Math.min(todayKwh / forecast * 100, 999) : 0;
+    const fc = parseFloat(Object.values(progs)[0] || 0);
+    const pct = fc > 0 ? Math.min(gen / fc * 100, 200) : 0;
 
-    document.getElementById('kpi-today').textContent = todayKwh.toFixed(1);
-    document.getElementById('kpi-forecast').textContent = forecast.toFixed(0);
-    document.getElementById('kpi-pct').textContent = pct.toFixed(0);
-
-    const badge = document.getElementById('pct-badge');
-    if (pct >= 100)     { badge.textContent = 'Exceeded'; badge.className = 'text-[9px] font-bold text-on-primary bg-primary px-2 py-0.5 rounded-full uppercase'; }
-    else if (pct >= 80) { badge.textContent = 'On Track'; badge.className = 'text-[9px] font-bold text-secondary-container bg-on-secondary-container px-2 py-0.5 rounded-full uppercase'; }
-    else                { badge.textContent = 'Below';    badge.className = 'text-[9px] font-bold text-on-error bg-error px-2 py-0.5 rounded-full uppercase'; }
-  } catch (e) { console.warn('Today fetch failed:', e); }
+    // Hero
+    document.getElementById('h-today').textContent = gen.toFixed(1);
+    document.getElementById('h-forecast').textContent = fc.toFixed(1);
+    // KPI cards
+    setText('k-today', gen.toFixed(1));
+    setText('k-forecast', fc.toFixed(1));
+    setText('k-pct', pct.toFixed(0));
+    document.getElementById('k-pct').style.color = pct >= 100 ? '#3fb950' : pct >= 80 ? '#f5a623' : '#f85149';
+    // Progress bars
+    document.getElementById('bar-today').style.width = Math.min(gen / (fc || 1) * 100, 100) + '%';
+    document.getElementById('bar-forecast').style.width = '100%';
+    document.getElementById('bar-pct').style.width = Math.min(pct, 100) + '%';
+  } catch (e) { console.warn('Today:', e); }
 }
 
-// ── Economy / savings ────────────────────────────────────────────────────────
+// ── Economy ─────────────────────────────────────────────────────
 async function loadEconomy() {
   try {
-    const d = await szGet('/api-sz/app/cliente/home/economizados');
+    const d = await api('/api/economy');
     const total = parseFloat(d.totalEconomizado || d.total || 0);
-    document.getElementById('kpi-savings').textContent =
-      total >= 1000 ? (total / 1000).toFixed(1) + 'k' : total.toFixed(0);
-
-    // Impact tab
-    document.getElementById('impact-savings-total').textContent =
-      'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
     const retorno = parseFloat(d.retornoTotal || d.totalRetorno || 0);
-    if (retorno > 0) {
-      document.getElementById('impact-return').textContent =
-        'R$ ' + retorno.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
+
+    // Bill & credits — use economy data
+    document.getElementById('k-credits-val').textContent = 'R$' + total.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+
+    // Impact
+    document.getElementById('i-savings').textContent = 'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (retorno > 0) document.getElementById('i-return').textContent = 'R$ ' + retorno.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     // Monthly savings chart
     const meses = d.meses || d.economizadosMensais || [];
-    if (Array.isArray(meses) && meses.length > 0) {
+    if (Array.isArray(meses) && meses.length) {
       const vals = meses.map(m => parseFloat(m.economizado || m.valor || 0));
-      const maxV = Math.max(...vals, 1);
-      let html = '', labels = '';
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const mx = Math.max(...vals, 1);
+      const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      let html = '', lbl = '';
       meses.forEach((m, i) => {
-        const v = vals[i];
-        const hPct = (v / maxV * 100).toFixed(1);
-        html += `<div class="flex-1 min-w-[16px]" title="R$ ${v.toFixed(0)}">
-          <div class="w-full rounded-t-md bar-grow" style="height:${hPct}%;animation-delay:${i*30}ms;background:rgba(255,185,95,.7)"></div>
-        </div>`;
+        const h = (vals[i] / mx * 100).toFixed(1);
+        html += '<div class="flex-1 min-w-[12px]"><div class="w-full rounded-t bar-anim" style="height:' + h + '%;background:#f5a623;animation-delay:' + (i*30) + 'ms"></div></div>';
       });
       document.getElementById('savings-chart').innerHTML = html;
-      // Labels
       const step = Math.max(1, Math.floor(meses.length / 6));
-      let lbl = '';
       for (let i = 0; i < meses.length; i += step) {
         const mo = meses[i].mes || meses[i].referencia || '';
         const idx = parseInt(mo.slice(5,7)) - 1;
-        lbl += `<span>${months[idx] || mo.slice(5,7)}</span>`;
+        lbl += '<span>' + (months[idx] || '') + '</span>';
       }
       document.getElementById('savings-labels').innerHTML = lbl;
     }
-  } catch (e) { console.warn('Economy fetch failed:', e); }
+  } catch (e) { console.warn('Economy:', e); }
 }
 
-// ── Economy details (Impact tab) ─────────────────────────────────────────────
-async function loadEconomyDetails() {
-  // Economy data already loaded in loadEconomy, just ensure it ran
-}
-
-// ── Unit sums (year total, performance, CO2) ─────────────────────────────────
+// ── Units (year, performance, credits) ──────────────────────────
 async function loadUnits() {
   try {
-    const arr = await szGet('/api-sz/app/cliente/unidades/sums');
-    const d = Array.isArray(arr) ? arr[0] || {} : arr;
+    const [sums, credit] = await Promise.all([
+      api('/api/units/sums'),
+      api('/api/units/credit').catch(() => null)
+    ]);
+    const d = Array.isArray(sums) ? sums[0] || {} : sums;
+    const totalKwh = parseFloat(d.totalGerado || d.geracaoTotal || 0);
+    const consumo = parseFloat(d.totalConsumido || d.consumoTotal || 0);
+    const creditos = parseFloat(d.creditoCorrente || d.saldoCredito || 0);
+    const perf = parseFloat(d.performance || d.desempenho || 0);
+    const yr = new Date().getFullYear();
 
-    const totalKwh   = parseFloat(d.totalGerado || d.geracaoTotal || 0);
-    const consumo    = parseFloat(d.totalConsumido || d.consumoTotal || 0);
-    const creditos   = parseFloat(d.creditoCorrente || d.saldoCredito || 0);
-    const perfVal    = parseFloat(d.performance || d.desempenho || 0);
+    // Hero
+    if (totalKwh >= 1000) { document.getElementById('h-year').textContent = (totalKwh/1000).toFixed(2); }
+    else { document.getElementById('h-year').textContent = totalKwh.toFixed(0); }
+    document.getElementById('h-perf').textContent = perf.toFixed(1) + '%';
+    document.getElementById('h-perf').style.color = perf >= 100 ? '#3fb950' : perf >= 80 ? '#f5a623' : '#f85149';
 
+    // KPI cards
     if (totalKwh >= 1000) {
-      document.getElementById('kpi-year').textContent = (totalKwh / 1000).toFixed(2);
-      document.getElementById('kpi-year-unit').textContent = 'MWh';
+      setText('k-year', (totalKwh/1000).toFixed(2));
+      document.getElementById('k-year-unit').textContent = 'MWh';
     } else {
-      document.getElementById('kpi-year').textContent = totalKwh.toFixed(0);
-      document.getElementById('kpi-year-unit').textContent = 'kWh';
+      setText('k-year', totalKwh.toFixed(0));
+      document.getElementById('k-year-unit').textContent = 'kWh';
+    }
+    setText('k-perf', perf.toFixed(1));
+    document.getElementById('k-perf').style.color = perf >= 100 ? '#3fb950' : perf >= 80 ? '#f5a623' : '#f85149';
+    document.getElementById('bar-year').style.width = Math.min(totalKwh / ((plantInfo.power||2000)/1000*4.5*365) * 100, 100) + '%';
+    document.getElementById('bar-perf').style.width = Math.min(perf, 100) + '%';
+    document.getElementById('bar-perf').style.background = perf >= 100 ? '#3fb950' : perf >= 80 ? '#f5a623' : '#f85149';
+
+    // Credits
+    document.getElementById('k-credit-bal').innerHTML = creditos >= 1000 ? (creditos/1000).toFixed(1) + 'k<span class="text-sm font-medium text-t2 ml-0.5">kWh</span>' : creditos.toFixed(0) + '<span class="text-sm font-medium text-t2 ml-0.5">kWh</span>';
+
+    // Saved %
+    if (consumo > 0) {
+      const savedPct = Math.min(totalKwh / consumo * 100, 999);
+      document.getElementById('k-saved-pct').textContent = savedPct.toFixed(0) + '%';
+      document.getElementById('bar-saved').style.width = Math.min(savedPct, 100) + '%';
     }
 
-    document.getElementById('kpi-perf').textContent = perfVal.toFixed(0);
-    document.getElementById('dev-perf').textContent = perfVal.toFixed(1) + '%';
-    document.getElementById('dev-perf-bar').style.width = Math.min(perfVal, 100) + '%';
+    // Devices
+    document.getElementById('d-perf').textContent = perf.toFixed(1) + '%';
+    document.getElementById('d-perf-bar').style.width = Math.min(perf, 100) + '%';
 
-    // Generation/Consumption/Credits cards
-    document.getElementById('kpi-gen-total').textContent =
-      totalKwh >= 1000 ? (totalKwh/1000).toFixed(1) + 'k' : totalKwh.toFixed(0);
-    document.getElementById('kpi-consumption').textContent =
-      consumo >= 1000 ? (consumo/1000).toFixed(1) + 'k' : consumo.toFixed(0);
-    document.getElementById('kpi-credits').textContent =
-      creditos >= 1000 ? (creditos/1000).toFixed(1) + 'k' : creditos.toFixed(0);
-
-    // Impact tab
+    // Impact
     const co2 = totalKwh * 0.5;
-    if (co2 >= 1000) {
-      document.getElementById('impact-co2').textContent = (co2 / 1000).toFixed(1);
-      document.getElementById('impact-co2-unit').textContent = 'tons CO₂';
-    } else {
-      document.getElementById('impact-co2').textContent = co2.toFixed(0);
-      document.getElementById('impact-co2-unit').textContent = 'kg CO₂';
-    }
-    document.getElementById('impact-trees').textContent = Math.round(co2 / 22);
-    document.getElementById('impact-km').textContent = Math.round(totalKwh * 6).toLocaleString(); // ~6 km/kWh for EVs
-    document.getElementById('dev-co2').textContent =
-      co2 >= 1000 ? (co2 / 1000).toFixed(1) + ' ton' : co2.toFixed(0) + ' kg';
+    if (co2 >= 1000) { document.getElementById('i-co2').textContent = (co2/1000).toFixed(1); document.getElementById('i-co2-unit').textContent = 'tons CO₂'; }
+    else { document.getElementById('i-co2').textContent = co2.toFixed(0); document.getElementById('i-co2-unit').textContent = 'kg CO₂'; }
+    document.getElementById('i-trees').textContent = Math.round(co2 / 22);
+    document.getElementById('i-km').textContent = Math.round(totalKwh * 6).toLocaleString();
+    if (totalKwh >= 1000) { document.getElementById('i-total-gen').textContent = (totalKwh/1000).toFixed(2); document.getElementById('i-total-unit').textContent = 'MWh'; }
+    else { document.getElementById('i-total-gen').textContent = totalKwh.toFixed(0); }
 
-    if (totalKwh >= 1000) {
-      document.getElementById('impact-total-gen').textContent = (totalKwh / 1000).toFixed(2);
-      document.getElementById('impact-total-unit').textContent = 'MWh';
-    } else {
-      document.getElementById('impact-total-gen').textContent = totalKwh.toFixed(0);
-      document.getElementById('impact-total-unit').textContent = 'kWh';
+    // Credit value (from credit endpoint)
+    if (credit) {
+      const cArr = Array.isArray(credit) ? credit : [credit];
+      const c0 = cArr[0] || {};
+      const creditVal = parseFloat(c0.valorCredito || c0.creditoValor || 0);
+      if (creditVal > 0) document.getElementById('k-credits-val').textContent = 'R$' + creditVal.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
     }
-    // Progress bar: estimate as % of year expected
-    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-    const expectedYear = (plantInfo.power || 2000) / 1000 * 4.5 * 365; // ~4.5 peak sun hours
-    const yearPct = Math.min((totalKwh / expectedYear) * 100, 100);
-    document.getElementById('impact-gen-bar').style.width = yearPct + '%';
-
-  } catch (e) { console.warn('Units fetch failed:', e); }
+  } catch (e) { console.warn('Units:', e); }
 }
 
-// ── Notifications ────────────────────────────────────────────────────────────
-async function loadNotifications() {
+// ── Sun info ────────────────────────────────────────────────────
+async function loadSunInfo() {
   try {
-    const d = await szGet('/cliente/notifications/page/0');
-    const items = d.content || d.notifications || [];
-    if (!items.length) return;
-
-    const container = document.getElementById('notifications-container');
-    container.classList.remove('hidden');
-    const list = document.getElementById('notifications-list');
-    let html = '';
-    items.slice(0, 5).forEach(n => {
-      const msg = n.mensagem || n.message || n.titulo || '';
-      const dt = n.dataHora || n.data || '';
-      const time = dt ? new Date(dt).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' }) : '';
-      html += `<div class="bg-surface-container rounded-xl p-3 flex items-start gap-3">
-        <span class="material-symbols-outlined text-secondary text-lg mt-0.5">notifications</span>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm text-on-surface truncate">${msg}</p>
-          <p class="text-[10px] text-on-surface-variant mt-0.5">${time}</p>
-        </div>
-      </div>`;
-    });
-    list.innerHTML = html;
-  } catch (e) { /* Notifications are optional */ }
+    // Use sunrise-sunset API for Caxias do Sul (-29.155, -51.175)
+    const res = await fetch('https://api.sunrise-sunset.org/json?lat=-29.155&lng=-51.175&formatted=0&date=today');
+    const j = await res.json();
+    if (j.status === 'OK') {
+      const r = j.results;
+      const fmt = iso => new Date(iso).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', timeZone:'America/Sao_Paulo' });
+      document.getElementById('sun-rise').textContent = fmt(r.sunrise);
+      document.getElementById('sun-noon').textContent = fmt(r.solar_noon);
+      document.getElementById('sun-set').textContent = fmt(r.sunset);
+      const len = (new Date(r.sunset) - new Date(r.sunrise)) / 3600000;
+      document.getElementById('sun-length').textContent = Math.floor(len) + 'h ' + Math.round((len % 1) * 60) + 'm';
+    }
+  } catch (e) { /* optional */ }
 }
 
-// ── Last Report (Devices tab) ────────────────────────────────────────────────
+// ── Report ──────────────────────────────────────────────────────
 async function loadReport() {
   try {
-    const d = await szGet(`/api-sz/app/cliente/plant/${usinaUuid}/lastReport`);
-    const el = document.getElementById('report-content');
+    const d = await api('/api/report');
     const items = [
-      ['Period', (d.periodoInicio || '').slice(0,10) + ' → ' + (d.periodoFim || '').slice(0,10)],
-      ['Generation', parseFloat(d.geracaoTotal || 0).toFixed(1) + ' kWh'],
-      ['Consumption', parseFloat(d.consumoTotal || 0).toFixed(1) + ' kWh'],
-      ['Economy', 'R$ ' + parseFloat(d.economia || d.economiaTotal || 0).toFixed(2)],
-      ['Performance', parseFloat(d.performance || d.desempenho || 0).toFixed(1) + '%'],
-      ['CO₂ Avoided', parseFloat(d.co2Evitado || 0).toFixed(1) + ' kg'],
-    ].filter(([,v]) => v && !v.startsWith('NaN'));
-
-    el.innerHTML = items.map(([label, value]) =>
-      `<div class="bg-surface-container rounded-xl p-3">
-        <p class="text-[9px] text-on-surface-variant uppercase tracking-widest">${label}</p>
-        <p class="font-bold text-on-surface mt-1 text-sm">${value}</p>
-      </div>`
+      ['Period', (d.periodoInicio||'').slice(0,10) + ' → ' + (d.periodoFim||'').slice(0,10)],
+      ['Generation', parseFloat(d.geracaoTotal||0).toFixed(1) + ' kWh'],
+      ['Consumption', parseFloat(d.consumoTotal||0).toFixed(1) + ' kWh'],
+      ['Economy', 'R$ ' + parseFloat(d.economia||d.economiaTotal||0).toFixed(2)],
+      ['Performance', parseFloat(d.performance||d.desempenho||0).toFixed(1) + '%'],
+      ['CO₂', parseFloat(d.co2Evitado||0).toFixed(1) + ' kg'],
+    ].filter(([,v]) => v && !v.includes('NaN'));
+    document.getElementById('report-grid').innerHTML = items.map(([l,v]) =>
+      '<div class="bg-bg3 rounded-lg p-2.5"><p class="text-[9px] text-t3">' + l + '</p><p class="font-bold text-t1 text-sm mt-0.5">' + v + '</p></div>'
     ).join('');
-  } catch (e) { console.warn('Report fetch failed:', e); }
+
+    // Also get bill info from report
+    const bill = parseFloat(d.valorFatura || d.fatura || 0);
+    if (bill > 0) {
+      document.getElementById('k-bill').textContent = 'R$' + bill.toFixed(0);
+      const ref = (d.periodoFim || '').slice(0, 7);
+      const months = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      const mo = parseInt(ref.slice(5,7));
+      document.getElementById('k-bill-label').textContent = 'Last Bill (' + (months[mo]||'') + '/' + ref.slice(2,4) + ')';
+    }
+  } catch (e) { console.warn('Report:', e); }
 }
 
-// ── Generation chart ─────────────────────────────────────────────────────────
+// ── Chart ───────────────────────────────────────────────────────
 let currentPeriod = 'day';
-
 async function loadChart(period) {
   currentPeriod = period;
-  chartLoaded = true;
+  document.querySelectorAll('.chart-tab').forEach(b => { b.className = 'chart-tab text-[10px] font-bold px-3 py-1.5 rounded-lg border border-border1 bg-bg2 text-t2'; });
+  const a = document.getElementById('btn-' + period);
+  if (a) a.className = 'chart-tab active-tab text-[10px] font-bold px-3 py-1.5 rounded-lg border border-border1 bg-sol text-black';
 
-  document.querySelectorAll('.chart-btn').forEach(b => {
-    b.className = 'chart-btn bg-surface-container text-on-surface-variant font-label text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest uppercase transition-all active:scale-95';
-  });
-  const active = document.getElementById('btn-' + period);
-  if (active) active.className = 'chart-btn bg-primary text-on-primary font-label text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest uppercase transition-all active:scale-95';
-
-  const now = new Date();
-  const end = now.toISOString().slice(0, 10);
-  let start;
-  if (period === 'day') {
-    const d = new Date(now); d.setDate(d.getDate() - 30);
-    start = d.toISOString().slice(0, 10);
-    document.getElementById('chart-subtitle').textContent = 'Last 30 days';
-  } else if (period === 'week') {
-    const d = new Date(now); d.setDate(d.getDate() - 90);
-    start = d.toISOString().slice(0, 10);
-    document.getElementById('chart-subtitle').textContent = 'Last 12 weeks';
-  } else {
-    start = now.getFullYear() + '-01-01';
-    document.getElementById('chart-subtitle').textContent = now.getFullYear() + ' monthly';
-  }
+  const now = new Date(), end = now.toISOString().slice(0,10);
+  let start, periodParam = period;
+  if (period === 'day') { const d = new Date(now); d.setDate(d.getDate()-30); start = d.toISOString().slice(0,10); }
+  else if (period === 'week') { const d = new Date(now); d.setDate(d.getDate()-90); start = d.toISOString().slice(0,10); periodParam = 'week'; }
+  else if (period === 'month') { start = now.getFullYear() + '-01-01'; }
+  else { start = '2020-01-01'; periodParam = 'year'; }
 
   try {
-    const d = await szGet('/api-sz/generation/period', {
-      usinaId, start, end, period,
-      uniteMonths: 'false', unitePortals: 'false'
-    });
+    const d = await api('/api/generation?start=' + start + '&end=' + end + '&period=' + periodParam);
     const dados = d.dados || [];
+    if (!dados.length) { document.getElementById('chart-box').innerHTML = '<p class="text-t3 text-sm w-full text-center">No data</p>'; return; }
 
-    if (!dados.length) {
-      document.getElementById('chart-container').innerHTML = '<p class="text-on-surface-variant text-sm w-full text-center">No data</p>';
-      document.getElementById('chart-labels').innerHTML = '';
-      return;
-    }
+    const vals = dados.map(x => parseFloat(x.quantidade || 0));
+    const fcs = dados.map(x => parseFloat(x.prognostico || 0));
+    const mx = Math.max(...vals, ...fcs, 1);
+    const total = vals.reduce((a,b) => a+b, 0);
+    const active = vals.filter(v => v > 0);
+    const avg = active.length ? total / active.length : 0;
+    const best = Math.max(...vals);
 
-    const values = dados.map(x => parseFloat(x.quantidade || 0));
-    const forecasts = dados.map(x => parseFloat(x.prognostico || 0));
-    const maxVal = Math.max(...values, ...forecasts, 1);
-    const totalGen = values.reduce((a, b) => a + b, 0);
-    const activeDays = values.filter(v => v > 0);
-    const avg = activeDays.length > 0 ? totalGen / activeDays.length : 0;
-    const best = Math.max(...values);
+    document.getElementById('c-total').textContent = total >= 1000 ? (total/1000).toFixed(1) + 'k' : total.toFixed(0);
+    document.getElementById('c-avg').textContent = avg.toFixed(1);
+    document.getElementById('c-best').textContent = best.toFixed(1);
 
-    document.getElementById('chart-total').textContent = totalGen.toFixed(0);
-    document.getElementById('chart-avg').textContent = avg.toFixed(1);
-    document.getElementById('chart-best').textContent = best.toFixed(1);
-
-    let barsHtml = '';
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    let html = '';
     dados.forEach((item, i) => {
-      const v = values[i];
-      const f = forecasts[i];
-      const hPct = (v / maxVal * 100).toFixed(1);
-      const dateStr = item.data || '';
-      const label = period === 'day' ? dateStr.slice(8, 10) :
-                    period === 'week' ? 'W' + (i+1) :
-                    months[parseInt(dateStr.slice(5,7))-1] || '';
-
-      barsHtml += `<div class="flex-1 min-w-[8px] flex flex-col items-center group relative" title="${label}: ${v.toFixed(1)} kWh">
-        <div class="w-full rounded-t-md bar-grow" style="height:${hPct}%;animation-delay:${i*20}ms;background:${v >= f ? 'rgba(204,255,128,.8)' : 'rgba(204,255,128,.25)'}"></div>
-      </div>`;
+      const v = vals[i], f = fcs[i];
+      const h = (v / mx * 100).toFixed(1);
+      const color = v >= f ? '#f5a623' : 'rgba(245,166,35,.3)';
+      html += '<div class="flex-1 min-w-[6px]" title="' + v.toFixed(1) + ' kWh"><div class="w-full rounded-t bar-anim" style="height:' + h + '%;background:' + color + ';animation-delay:' + (i*15) + 'ms"></div></div>';
     });
-
-    document.getElementById('chart-container').innerHTML = barsHtml;
+    document.getElementById('chart-box').innerHTML = html;
 
     const step = Math.max(1, Math.floor(dados.length / 6));
-    let labelsHtml = '';
+    let lbl = '';
     for (let i = 0; i < dados.length; i += step) {
-      const dateStr = dados[i].data || '';
-      const label = period === 'day' ? dateStr.slice(5, 10).replace('-', '/') :
-                    period === 'week' ? 'W' + (i+1) :
-                    months[parseInt(dateStr.slice(5,7))-1] || '';
-      labelsHtml += `<span>${label}</span>`;
+      const ds = dados[i].data || '';
+      let label;
+      if (period === 'day') label = ds.slice(8,10) + '/' + ds.slice(5,7);
+      else if (period === 'week') label = 'S' + (i+1);
+      else if (period === 'month') label = months[parseInt(ds.slice(5,7))-1] || '';
+      else label = ds.slice(0,4);
+      lbl += '<span>' + label + '</span>';
     }
-    document.getElementById('chart-labels').innerHTML = labelsHtml;
+    document.getElementById('chart-labels').innerHTML = lbl;
 
-    // Top days list
+    // Top days
     if (period === 'day') {
-      const sorted = dados.map((item, i) => ({ ...item, val: values[i], forecast: forecasts[i] }))
-        .filter(x => x.val > 0)
-        .sort((a, b) => b.val - a.val)
-        .slice(0, 7);
-      let topHtml = '';
-      sorted.forEach((item, rank) => {
-        const dateStr = item.data || '';
-        const pctVsForecast = item.forecast > 0 ? (item.val / item.forecast * 100).toFixed(0) : '—';
-        topHtml += `<div class="flex justify-between items-center">
-          <div class="flex items-center gap-2">
-            <span class="font-headline text-xs font-bold text-on-surface-variant w-4">${rank + 1}</span>
-            <span class="text-on-surface">${dateStr.slice(5).replace('-','/')}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="font-bold text-primary">${item.val.toFixed(1)} kWh</span>
-            <span class="text-[10px] ${parseInt(pctVsForecast) >= 100 ? 'text-primary' : 'text-on-surface-variant'}">${pctVsForecast}%</span>
-          </div>
-        </div>`;
-      });
-      document.getElementById('top-days').innerHTML = topHtml;
+      const sorted = dados.map((x,i) => ({...x, v:vals[i], f:fcs[i]})).filter(x => x.v > 0).sort((a,b) => b.v - a.v).slice(0,7);
+      document.getElementById('top-days').innerHTML = sorted.map((x,r) => {
+        const pct = x.f > 0 ? (x.v/x.f*100).toFixed(0) : '—';
+        const ds = x.data || '';
+        return '<div class="flex justify-between items-center text-sm"><span class="text-t3 w-4">' + (r+1) + '</span><span class="text-t1">' + ds.slice(8,10)+'/'+ds.slice(5,7) + '</span><span class="ml-auto font-bold text-sol">' + x.v.toFixed(1) + ' kWh</span><span class="ml-2 text-[10px] ' + (parseInt(pct)>=100?'text-grn':'text-t3') + '">' + pct + '%</span></div>';
+      }).join('');
+    } else {
+      document.getElementById('top-days').innerHTML = '';
     }
-
   } catch (e) {
-    console.warn('Chart fetch failed:', e);
-    document.getElementById('chart-container').innerHTML = '<p class="text-error text-sm w-full text-center">Failed to load</p>';
+    console.warn('Chart:', e);
+    document.getElementById('chart-box').innerHTML = '<p class="text-red text-sm w-full text-center">Failed</p>';
   }
 }
 
-// ── Monthly Overview (Generation vs Consumption vs Credits) ──────────────────
-async function loadMonthlyOverview() {
+// ── Monthly overview ────────────────────────────────────────────
+async function loadMonthly() {
   try {
     const now = new Date();
-    const start = now.getFullYear() + '-01-01';
-    const end = now.toISOString().slice(0, 10);
-    const arr = await szGet('/api-sz/app/cliente/unidades', { start, end });
+    const d = await api('/api/units/period?start=' + now.getFullYear() + '-01-01&end=' + now.toISOString().slice(0,10));
+    const items = Array.isArray(d) ? d : [];
+    if (!items.length) { document.getElementById('monthly-chart').innerHTML = '<p class="text-t3 text-sm w-full text-center">No data</p>'; return; }
 
-    const items = Array.isArray(arr) ? arr : [];
-    if (!items.length) {
-      document.getElementById('monthly-chart').innerHTML = '<p class="text-on-surface-variant text-sm w-full text-center">No data</p>';
-      return;
-    }
-
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const genVals = items.map(m => parseFloat(m.gerado || m.geracao || m.totalGerado || 0));
-    const conVals = items.map(m => parseFloat(m.consumido || m.consumo || m.totalConsumido || 0));
-    const credVals = items.map(m => parseFloat(m.credito || m.saldoCredito || m.creditoCorrente || 0));
-    const maxVal = Math.max(...genVals, ...conVals, ...credVals, 1);
+    const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const gen = items.map(m => parseFloat(m.gerado||m.geracao||m.totalGerado||0));
+    const con = items.map(m => parseFloat(m.consumido||m.consumo||m.totalConsumido||0));
+    const cred = items.map(m => parseFloat(m.credito||m.saldoCredito||m.creditoCorrente||0));
+    const mx = Math.max(...gen, ...con, ...cred, 1);
 
     let html = '';
     items.forEach((m, i) => {
-      const gH = (genVals[i] / maxVal * 100).toFixed(1);
-      const cH = (conVals[i] / maxVal * 100).toFixed(1);
-      const crH = (credVals[i] / maxVal * 100).toFixed(1);
-      html += `<div class="flex-1 min-w-[20px] flex items-end gap-[1px]" title="Gen: ${genVals[i].toFixed(0)} Con: ${conVals[i].toFixed(0)} Cred: ${credVals[i].toFixed(0)}">
-        <div class="flex-1 rounded-t-sm bar-grow" style="height:${gH}%;background:rgba(204,255,128,.7);animation-delay:${i*50}ms"></div>
-        <div class="flex-1 rounded-t-sm bar-grow" style="height:${cH}%;background:rgba(123,208,255,.7);animation-delay:${i*50+20}ms"></div>
-        <div class="flex-1 rounded-t-sm bar-grow" style="height:${crH}%;background:rgba(255,185,95,.7);animation-delay:${i*50+40}ms"></div>
-      </div>`;
+      const gH = (gen[i]/mx*100).toFixed(1), cH = (con[i]/mx*100).toFixed(1), crH = (cred[i]/mx*100).toFixed(1);
+      html += '<div class="flex-1 min-w-[16px] flex items-end gap-[1px]">' +
+        '<div class="flex-1 rounded-t bar-anim" style="height:'+gH+'%;background:#f5a623;animation-delay:'+i*40+'ms"></div>' +
+        '<div class="flex-1 rounded-t bar-anim" style="height:'+cH+'%;background:#58a6ff;animation-delay:'+(i*40+15)+'ms"></div>' +
+        '<div class="flex-1 rounded-t bar-anim" style="height:'+crH+'%;background:#3fb950;animation-delay:'+(i*40+30)+'ms"></div></div>';
     });
     document.getElementById('monthly-chart').innerHTML = html;
+    document.getElementById('monthly-labels').innerHTML = items.map((m,i) => {
+      const ref = m.referencia||m.mes||''; const idx = parseInt(ref.slice(5,7))-1;
+      return '<span>'+(months[idx]||'')+'</span>';
+    }).join('');
+  } catch (e) { console.warn('Monthly:', e); }
+}
 
-    let labels = '';
-    items.forEach((m, i) => {
-      const ref = m.referencia || m.mes || '';
-      const idx = parseInt(ref.slice(5,7)) - 1;
-      labels += `<span>${months[idx] || ref.slice(5,7)}</span>`;
-    });
-    document.getElementById('monthly-labels').innerHTML = labels;
-
-  } catch (e) { console.warn('Monthly overview failed:', e); }
+// ── Helpers ─────────────────────────────────────────────────────
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const spans = el.querySelectorAll('span');
+  const suffix = spans.length ? spans[spans.length-1].outerHTML : '';
+  el.innerHTML = val + suffix;
 }
 </script>
-
 </body>
 </html>
