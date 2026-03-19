@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Usina Chácara — Solar Dashboard</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b1326">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "background": "#0b1326",
+        "on-background": "#dae2fd",
+        "surface-bright": "#31394d",
+        "on-surface-variant": "#c2cab0",
+        "tertiary-container": "#ffc989",
+        "surface-variant": "#2d3449",
+        "surface-container-high": "#222a3d",
+        "primary-fixed-dim": "#98da27",
+        "on-tertiary-container": "#805000",
+        "on-secondary-container": "#00374d",
+        "primary": "#ccff80",
+        "primary-container": "#a3e635",
+        "outline-variant": "#424936",
+        "tertiary": "#ffecd9",
+        "on-primary": "#213600",
+        "on-error-container": "#ffdad6",
+        "surface-container-highest": "#2d3449",
+        "on-surface": "#dae2fd",
+        "surface-container-low": "#131b2e",
+        "secondary-container": "#00a6e0",
+        "error": "#ffb4ab",
+        "on-secondary": "#00354a",
+        "tertiary-fixed-dim": "#ffb95f",
+        "secondary": "#7bd0ff",
+        "surface-container-lowest": "#060e20",
+        "primary-fixed": "#b2f746",
+        "surface": "#0b1326",
+        "surface-container": "#171f33",
+        "outline": "#8c947c",
+        "on-error": "#690005",
+        "secondary-fixed-dim": "#7bd0ff",
+        "on-tertiary": "#472a00"
+      },
+      fontFamily: {
+        "headline": ["Space Grotesk"],
+        "body": ["Inter"],
+        "label": ["Inter"]
+      },
+    },
+  },
+}
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .glow-primary { box-shadow: 0 0 40px -10px rgba(204, 255, 128, 0.3); }
+  body { min-height: 100dvh; }
+  .fade-in { animation: fadeIn .4s ease-out; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+  .gauge-ring { transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1); }
+  .bar-grow { animation: growUp .6s ease-out forwards; transform-origin: bottom; }
+  @keyframes growUp { from { transform: scaleY(0) } to { transform: scaleY(1) } }
+  #login-screen, #dashboard { transition: opacity .3s ease; }
+</style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary selection:text-on-primary">
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- LOGIN SCREEN                                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center px-6">
+  <div class="w-full max-w-sm space-y-8">
+    <!-- Logo -->
+    <div class="text-center space-y-3">
+      <div class="w-20 h-20 mx-auto rounded-3xl bg-primary/10 flex items-center justify-center">
+        <span class="material-symbols-outlined text-primary text-5xl" style="font-variation-settings:'FILL' 1">solar_power</span>
+      </div>
+      <h1 class="font-headline text-3xl font-black text-primary tracking-tight">Usina Chácara</h1>
+      <p class="font-label text-sm text-on-surface-variant">WEG SIW2000G M075 W1 &middot; SolarZ Cloud</p>
+    </div>
+    <!-- Form -->
+    <div class="bg-surface-container rounded-3xl p-6 space-y-5">
+      <div>
+        <label class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase block mb-2">Email</label>
+        <input id="login-email" type="email" placeholder="seu@email.com"
+               class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-on-surface font-body text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" />
+      </div>
+      <div>
+        <label class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase block mb-2">Password</label>
+        <input id="login-password" type="password" placeholder="••••••••"
+               class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-on-surface font-body text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" />
+      </div>
+      <div id="login-error" class="hidden text-error text-sm font-label text-center"></div>
+      <button id="login-btn" onclick="doLogin()"
+              class="w-full bg-primary text-on-primary font-label text-xs font-bold py-3.5 rounded-full tracking-widest uppercase hover:scale-[1.02] transition-transform active:scale-95">
+        Connect
+      </button>
+    </div>
+    <p class="text-center text-on-surface-variant text-xs">Filipe Tome Modelski</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- DASHBOARD (hidden until login)                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="dashboard" class="hidden">
+
+<!-- TopAppBar -->
+<header class="bg-[#0b1326]/60 backdrop-blur-xl fixed top-0 w-full z-50">
+  <div class="flex justify-between items-center px-6 py-4 w-full mx-auto">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1">solar_power</span>
+      <h1 class="font-headline text-lg font-bold tracking-tight text-primary" id="header-plant">Usina Chácara</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="hidden md:flex items-center gap-6 mr-8">
+        <span class="font-label text-[10px] uppercase tracking-widest font-bold text-primary">Dashboard</span>
+        <span class="font-label text-[10px] uppercase tracking-widest font-bold text-on-background opacity-70 hover:bg-surface-bright transition-colors px-2 py-1 rounded">Analytics</span>
+        <span class="font-label text-[10px] uppercase tracking-widest font-bold text-on-background opacity-70 hover:bg-surface-bright transition-colors px-2 py-1 rounded">Devices</span>
+      </div>
+      <span id="status-icon" class="material-symbols-outlined text-primary cursor-pointer active:scale-95 duration-200" style="font-variation-settings:'FILL' 1">wifi</span>
+    </div>
+  </div>
+</header>
+
+<main class="pt-24 pb-32 px-6 max-w-7xl mx-auto space-y-10">
+
+<!-- ── Hero: Gauge + Flow ─────────────────────────────────────────────── -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start fade-in">
+
+  <!-- Circular Gauge -->
+  <div class="lg:col-span-5 bg-surface-container rounded-3xl p-8 aspect-square flex flex-col items-center justify-center relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none"></div>
+    <div class="relative w-full aspect-square max-w-[340px] flex items-center justify-center">
+      <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+        <circle class="text-surface-variant" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-width="2"/>
+        <circle id="gauge-ring" class="text-primary gauge-ring drop-shadow-[0_0_8px_rgba(204,255,128,0.5)]" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" stroke-width="6"/>
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span class="font-label text-xs tracking-[0.2em] text-on-surface-variant">SOLAR GENERATION</span>
+        <div class="flex items-baseline">
+          <span id="gauge-value" class="font-headline text-7xl font-black tracking-tighter text-on-surface">—</span>
+          <span class="font-headline text-2xl font-bold text-primary ml-1">kW</span>
+        </div>
+        <div id="gauge-badge" class="mt-4 flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full">
+          <span class="material-symbols-outlined text-sm text-primary" style="font-variation-settings:'FILL' 1">bolt</span>
+          <span id="gauge-label" class="font-label text-[10px] font-bold text-primary tracking-widest uppercase">Connecting…</span>
+        </div>
+      </div>
+    </div>
+    <div class="mt-8 grid grid-cols-2 gap-12 w-full px-4">
+      <div class="space-y-1">
+        <p class="font-label text-[10px] text-on-surface-variant tracking-widest">VOLTAGE</p>
+        <p id="stat-voltage" class="font-headline text-xl font-bold">—</p>
+      </div>
+      <div class="space-y-1 text-right">
+        <p class="font-label text-[10px] text-on-surface-variant tracking-widest">FREQUENCY</p>
+        <p id="stat-freq" class="font-headline text-xl font-bold">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: KPI cards + today summary -->
+  <div class="lg:col-span-7 space-y-6">
+
+    <!-- Today summary cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-surface-container rounded-2xl p-5 space-y-2">
+        <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Today</p>
+        <p class="font-headline text-2xl font-black"><span id="kpi-today">—</span> <span class="text-sm font-normal text-on-surface-variant">kWh</span></p>
+      </div>
+      <div class="bg-surface-container rounded-2xl p-5 space-y-2">
+        <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Forecast</p>
+        <p class="font-headline text-2xl font-black"><span id="kpi-forecast">—</span> <span class="text-sm font-normal text-on-surface-variant">kWh</span></p>
+      </div>
+      <div class="bg-surface-container rounded-2xl p-5 space-y-2">
+        <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Year Total</p>
+        <p class="font-headline text-2xl font-black"><span id="kpi-year">—</span> <span class="text-sm font-normal text-on-surface-variant" id="kpi-year-unit">MWh</span></p>
+      </div>
+      <div class="bg-surface-container rounded-2xl p-5 space-y-2">
+        <p class="font-label text-[9px] text-on-surface-variant tracking-widest uppercase">Performance</p>
+        <p class="font-headline text-2xl font-black"><span id="kpi-perf">—</span><span class="text-sm font-normal text-primary">%</span></p>
+      </div>
+    </div>
+
+    <!-- Energy flow schematic -->
+    <div class="bg-surface-container-low rounded-3xl p-8 relative overflow-hidden border border-outline-variant/5">
+      <div>
+        <h2 class="font-headline text-2xl font-bold tracking-tight">Energy Flow</h2>
+        <p class="font-label text-xs text-on-surface-variant tracking-wider uppercase mt-1">Real-time system mapping</p>
+      </div>
+      <div class="mt-8 relative h-48 w-full flex items-center justify-center">
+        <svg class="absolute inset-0 w-full h-full opacity-20" preserveAspectRatio="none">
+          <path d="M 100 96 L 500 96" stroke="#ccff80" stroke-dasharray="4 4" stroke-width="1"/>
+        </svg>
+        <div class="absolute top-1/2 left-4 -translate-y-1/2 flex flex-col items-center gap-2">
+          <div class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center border border-primary/20 shadow-lg">
+            <span class="material-symbols-outlined text-primary text-2xl">solar_power</span>
+          </div>
+          <span class="font-label text-[9px] uppercase font-bold text-on-surface-variant">Panels</span>
+          <span id="flow-panels" class="font-headline text-sm font-bold text-primary">— kW</span>
+        </div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
+          <div class="w-20 h-20 rounded-full bg-primary/10 border-4 border-primary/20 flex items-center justify-center relative">
+            <div id="flow-spinner" class="absolute inset-0 border-2 border-primary border-t-transparent rounded-full animate-spin" style="animation-duration:3s"></div>
+            <span class="material-symbols-outlined text-primary text-3xl">home</span>
+          </div>
+          <span class="font-label text-[9px] uppercase font-bold text-primary">Home</span>
+        </div>
+        <div class="absolute top-1/2 right-4 -translate-y-1/2 flex flex-col items-center gap-2">
+          <div class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center border border-secondary/20 shadow-lg">
+            <span class="material-symbols-outlined text-secondary text-2xl">electric_meter</span>
+          </div>
+          <span class="font-label text-[9px] uppercase font-bold text-on-surface-variant">Grid</span>
+          <span id="flow-grid" class="font-headline text-sm font-bold text-secondary">— kW</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bento: Today vs Forecast + Savings -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-surface-container rounded-3xl p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+        <div class="flex justify-between items-start">
+          <span class="material-symbols-outlined text-secondary text-2xl">speed</span>
+          <span id="pct-badge" class="text-[10px] font-bold text-secondary-container bg-on-secondary-container px-2 py-0.5 rounded-full uppercase">—</span>
+        </div>
+        <div class="mt-6">
+          <p class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase">Today vs Forecast</p>
+          <h3 class="font-headline text-3xl font-black mt-1"><span id="kpi-pct">—</span><span class="text-sm font-normal">%</span></h3>
+        </div>
+      </div>
+      <div class="bg-surface-container rounded-3xl p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+        <div class="flex justify-between items-start">
+          <span class="material-symbols-outlined text-tertiary-fixed-dim text-2xl">savings</span>
+          <span class="text-[10px] font-bold text-on-tertiary-container bg-tertiary-container px-2 py-0.5 rounded-full uppercase">Savings</span>
+        </div>
+        <div class="mt-6">
+          <p class="font-label text-[10px] text-on-surface-variant tracking-widest uppercase">Total Saved</p>
+          <h3 class="font-headline text-2xl font-black mt-1">R$<span id="kpi-savings">—</span></h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Generation Chart ───────────────────────────────────────────────── -->
+<section class="space-y-6 fade-in">
+  <div class="flex justify-between items-end">
+    <div>
+      <h2 class="font-headline text-3xl font-black tracking-tighter">Generation History</h2>
+      <p id="chart-subtitle" class="text-on-surface-variant font-label text-sm">Last 30 days</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="loadChart('day')"   id="btn-day"   class="chart-btn bg-primary text-on-primary font-label text-[10px] font-bold px-4 py-2 rounded-full tracking-widest uppercase transition-all active:scale-95">Daily</button>
+      <button onclick="loadChart('month')" id="btn-month" class="chart-btn bg-surface-container text-on-surface-variant font-label text-[10px] font-bold px-4 py-2 rounded-full tracking-widest uppercase transition-all active:scale-95 hover:bg-surface-container-high">Monthly</button>
+    </div>
+  </div>
+  <div class="bg-surface-container rounded-3xl p-6 md:p-8">
+    <div id="chart-container" class="h-56 flex items-end gap-[3px] overflow-x-auto pb-2">
+      <p class="text-on-surface-variant text-sm w-full text-center">Loading generation data…</p>
+    </div>
+    <div id="chart-labels" class="flex justify-between mt-3 text-[9px] font-bold text-on-surface-variant tracking-[0.15em] px-1 overflow-x-auto"></div>
+  </div>
+</section>
+
+<!-- ── Device Cards ───────────────────────────────────────────────────── -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 fade-in" id="devices-section">
+  <!-- Inverter -->
+  <div class="bg-surface-container-low p-6 rounded-3xl space-y-4">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-secondary bg-secondary/10 p-2 rounded-xl">bolt</span>
+      <div>
+        <h4 class="font-headline font-bold">WEG SIW2000G</h4>
+        <p class="font-label text-[10px] text-on-surface-variant">M075 W1 Inverter</p>
+      </div>
+    </div>
+    <div class="flex justify-between items-center text-sm">
+      <span class="text-on-surface-variant">Status</span>
+      <span id="dev-inverter-status" class="font-bold text-primary">—</span>
+    </div>
+    <div class="flex justify-between items-center text-sm">
+      <span class="text-on-surface-variant">Last Comm</span>
+      <span id="dev-inverter-comm" class="font-bold text-on-surface">—</span>
+    </div>
+  </div>
+  <!-- Solar Array -->
+  <div class="bg-surface-container-low p-6 rounded-3xl space-y-4">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary-fixed-dim bg-primary/10 p-2 rounded-xl">solar_power</span>
+      <div>
+        <h4 class="font-headline font-bold" id="dev-plant-name">Solar Array</h4>
+        <p class="font-label text-[10px] text-on-surface-variant" id="dev-plant-info">—</p>
+      </div>
+    </div>
+    <div class="flex justify-between items-center text-sm">
+      <span class="text-on-surface-variant">Performance</span>
+      <span id="dev-perf" class="text-primary font-bold">—</span>
+    </div>
+    <div class="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+      <div id="dev-perf-bar" class="bg-primary h-full rounded-full transition-all duration-700" style="width:0%"></div>
+    </div>
+  </div>
+  <!-- Carbon Impact -->
+  <div class="bg-surface-container-low p-6 rounded-3xl space-y-4">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-tertiary-fixed-dim bg-tertiary-container/10 p-2 rounded-xl">eco</span>
+      <h4 class="font-headline font-bold">Carbon Impact</h4>
+    </div>
+    <div class="flex justify-between items-center text-sm">
+      <span class="text-on-surface-variant">CO2 Avoided</span>
+      <span id="dev-co2" class="text-tertiary-fixed-dim font-bold">—</span>
+    </div>
+    <div class="flex justify-between items-center text-sm">
+      <span class="text-on-surface-variant">Trees Equivalent</span>
+      <span id="dev-trees" class="text-tertiary-fixed-dim font-bold">—</span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- Bottom Nav (Mobile) -->
+<nav class="md:hidden bg-[#171f33]/80 backdrop-blur-2xl fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 z-50 rounded-t-3xl border-t border-outline-variant/15 shadow-[0_-4px_24px_0_rgba(152,218,39,0.05)]">
+  <div class="flex flex-col items-center justify-center bg-surface-container-high text-primary rounded-2xl px-5 py-2 scale-105">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">dashboard</span>
+    <span class="font-label text-[10px] uppercase tracking-widest font-bold mt-1">Dashboard</span>
+  </div>
+  <div class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-2">
+    <span class="material-symbols-outlined">insights</span>
+    <span class="font-label text-[10px] uppercase tracking-widest font-bold mt-1">Analytics</span>
+  </div>
+  <div class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-2">
+    <span class="material-symbols-outlined">settings_input_component</span>
+    <span class="font-label text-[10px] uppercase tracking-widest font-bold mt-1">Devices</span>
+  </div>
+  <div class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-2">
+    <span class="material-symbols-outlined">eco</span>
+    <span class="font-label text-[10px] uppercase tracking-widest font-bold mt-1">Impact</span>
+  </div>
+</nav>
+
+<!-- Refresh FAB -->
+<button onclick="refreshAll()" class="fixed bottom-10 right-8 md:bottom-12 md:right-12 bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 duration-200 z-40 glow-primary" title="Refresh data">
+  <span id="fab-icon" class="material-symbols-outlined text-2xl transition-transform">refresh</span>
+</button>
+
+</div><!-- /dashboard -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- APPLICATION LOGIC                                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// SolarZ API — Direct browser calls (no backend proxy needed)
+// ═══════════════════════════════════════════════════════════════════════════════
+const SZ = 'https://app.solarz.com.br';
+let token = '', usinaId = '', usinaUuid = '', plantInfo = {}, refreshTimer = null;
+
+const szHeaders = () => ({
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer ' + token,
+});
+
+async function szGet(path, params = {}) {
+  const url = new URL(SZ + path);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const res = await fetch(url, { headers: szHeaders() });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+// ── Login ────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw    = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+
+  if (!email || !pw) { errEl.textContent = 'Enter email and password'; errEl.classList.remove('hidden'); return; }
+
+  btn.textContent = 'CONNECTING…';
+  btn.disabled = true;
+  errEl.classList.add('hidden');
+
+  try {
+    // 1. Authenticate
+    const authRes = await fetch(SZ + '/cliente/authenticate', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: email, password: pw })
+    });
+    const authData = await authRes.json();
+
+    if (!authData.token) {
+      errEl.textContent = authData.error || 'Invalid credentials';
+      errEl.classList.remove('hidden');
+      btn.textContent = 'CONNECT'; btn.disabled = false;
+      return;
+    }
+    token = authData.token;
+
+    // 2. Get client context (plant IDs)
+    const ctx = await szGet('/cliente/context');
+    const usinas = ctx.usinas || [];
+    const plant = usinas[0] || {};
+    usinaId   = plant.id || '';
+    usinaUuid = plant.uuid || '';
+
+    plantInfo = {
+      name:    plant.nome || 'Usina Chácara',
+      power:   plant.potencia || 0,
+      modules: plant.quantidadeModulos || 0,
+    };
+
+    document.getElementById('header-plant').textContent = plantInfo.name;
+    document.getElementById('dev-plant-name').textContent = plantInfo.name;
+    document.getElementById('dev-plant-info').textContent =
+      `${plantInfo.power || '—'}W · ${plantInfo.modules || '—'} modules`;
+
+    // Switch screens
+    document.getElementById('login-screen').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      setTimeout(() => refreshAll(), 100);
+    }, 300);
+
+    refreshTimer = setInterval(refreshAll, 5 * 60 * 1000);
+
+  } catch (e) {
+    errEl.textContent = 'Connection error: ' + e.message;
+    errEl.classList.remove('hidden');
+    btn.textContent = 'CONNECT'; btn.disabled = false;
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('login-screen').classList.contains('hidden')) doLogin();
+});
+
+// ── Refresh all data ─────────────────────────────────────────────────────────
+async function refreshAll() {
+  const fab = document.getElementById('fab-icon');
+  fab.style.transform = 'rotate(360deg)';
+  setTimeout(() => fab.style.transform = '', 700);
+
+  await Promise.allSettled([
+    loadStatus(),
+    loadToday(),
+    loadChart(currentPeriod),
+    loadEconomy(),
+    loadUnits(),
+  ]);
+}
+
+// ── Real-time status (gauge) ─────────────────────────────────────────────────
+async function loadStatus() {
+  try {
+    const d = await szGet('/shareable/currently/usina', { id: usinaId });
+
+    const power   = parseFloat(d.potenciaAtiva || d.potencia || 0);
+    const voltage = parseFloat(d.tensaoRede || d.voltage || 0);
+    const freq    = parseFloat(d.frequenciaRede || d.frequency || 0);
+    const online  = d.online !== false;
+
+    const maxKw = 2.0;
+    const kw = power / 1000;
+    const pct = Math.min(kw / maxKw, 1);
+    const offset = 283 - (283 * pct);
+    document.getElementById('gauge-ring').setAttribute('stroke-dashoffset', offset);
+    document.getElementById('gauge-value').textContent = kw.toFixed(1);
+
+    const label = document.getElementById('gauge-label');
+    if (kw > maxKw * 0.9)       { label.textContent = 'Peak Output'; }
+    else if (kw > maxKw * 0.5)  { label.textContent = 'Generating'; }
+    else if (kw > 0)            { label.textContent = 'Low Output'; }
+    else                        { label.textContent = online ? 'Standby' : 'Offline'; }
+
+    document.getElementById('stat-voltage').textContent = voltage ? voltage.toFixed(0) + 'V' : '—';
+    document.getElementById('stat-freq').textContent = freq ? freq.toFixed(1) + ' Hz' : '—';
+    document.getElementById('flow-panels').textContent = kw.toFixed(1) + ' kW';
+    document.getElementById('flow-grid').textContent = '0.0 kW';
+
+    document.getElementById('dev-inverter-status').textContent = online ? 'Online' : 'Offline';
+    document.getElementById('dev-inverter-status').className = 'font-bold ' + (online ? 'text-primary' : 'text-error');
+
+    const si = document.getElementById('status-icon');
+    si.textContent = online ? 'wifi' : 'wifi_off';
+    si.className = 'material-symbols-outlined cursor-pointer active:scale-95 duration-200 ' + (online ? 'text-primary' : 'text-error');
+
+    if (d.dataHoraUltimaComunicacao) {
+      const dt = new Date(d.dataHoraUltimaComunicacao);
+      document.getElementById('dev-inverter-comm').textContent =
+        dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+  } catch (e) { console.warn('Status fetch failed:', e); }
+}
+
+// ── Today's generation ───────────────────────────────────────────────────────
+async function loadToday() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const d = await szGet('/api-sz/generation/day', { usinaId, day: today, unitePortals: 'true' });
+
+    const todayKwh = parseFloat(d.totalGerado || 0);
+    const forecast = parseFloat(Object.values(d.prognosticos || {})[0] || 0);
+    const pct = forecast > 0 ? Math.min(todayKwh / forecast * 100, 999) : 0;
+
+    document.getElementById('kpi-today').textContent = todayKwh.toFixed(1);
+    document.getElementById('kpi-forecast').textContent = forecast.toFixed(0);
+    document.getElementById('kpi-pct').textContent = pct.toFixed(0);
+
+    const badge = document.getElementById('pct-badge');
+    if (pct >= 100)     { badge.textContent = 'Exceeded'; badge.className = 'text-[10px] font-bold text-on-primary bg-primary px-2 py-0.5 rounded-full uppercase'; }
+    else if (pct >= 80) { badge.textContent = 'On Track'; badge.className = 'text-[10px] font-bold text-secondary-container bg-on-secondary-container px-2 py-0.5 rounded-full uppercase'; }
+    else                { badge.textContent = 'Below';    badge.className = 'text-[10px] font-bold text-on-error bg-error px-2 py-0.5 rounded-full uppercase'; }
+  } catch (e) { console.warn('Today fetch failed:', e); }
+}
+
+// ── Economy / savings ────────────────────────────────────────────────────────
+async function loadEconomy() {
+  try {
+    const d = await szGet('/api-sz/app/cliente/home/economizados');
+    const total = parseFloat(d.totalEconomizado || d.total || 0);
+    document.getElementById('kpi-savings').textContent =
+      total >= 1000 ? (total / 1000).toFixed(1) + 'k' : total.toFixed(0);
+  } catch (e) { console.warn('Economy fetch failed:', e); }
+}
+
+// ── Unit sums (year total, performance, CO2) ─────────────────────────────────
+async function loadUnits() {
+  try {
+    const arr = await szGet('/api-sz/app/cliente/unidades/sums');
+    const d = Array.isArray(arr) ? arr[0] || {} : arr;
+
+    const totalKwh = parseFloat(d.totalGerado || d.geracaoTotal || 0);
+    const perfVal  = parseFloat(d.performance || d.desempenho || 0);
+
+    if (totalKwh >= 1000) {
+      document.getElementById('kpi-year').textContent = (totalKwh / 1000).toFixed(2);
+      document.getElementById('kpi-year-unit').textContent = 'MWh';
+    } else {
+      document.getElementById('kpi-year').textContent = totalKwh.toFixed(0);
+      document.getElementById('kpi-year-unit').textContent = 'kWh';
+    }
+
+    document.getElementById('kpi-perf').textContent = perfVal.toFixed(0);
+    document.getElementById('dev-perf').textContent = perfVal.toFixed(1) + '%';
+    document.getElementById('dev-perf-bar').style.width = Math.min(perfVal, 100) + '%';
+
+    const co2 = totalKwh * 0.5;
+    document.getElementById('dev-co2').textContent =
+      co2 >= 1000 ? (co2 / 1000).toFixed(1) + ' ton' : co2.toFixed(0) + ' kg';
+    document.getElementById('dev-trees').textContent = Math.round(co2 / 22);
+  } catch (e) { console.warn('Units fetch failed:', e); }
+}
+
+// ── Generation chart ─────────────────────────────────────────────────────────
+let currentPeriod = 'day';
+
+async function loadChart(period) {
+  currentPeriod = period;
+
+  document.querySelectorAll('.chart-btn').forEach(b => {
+    b.className = 'chart-btn bg-surface-container text-on-surface-variant font-label text-[10px] font-bold px-4 py-2 rounded-full tracking-widest uppercase transition-all active:scale-95 hover:bg-surface-container-high';
+  });
+  const active = document.getElementById('btn-' + period);
+  if (active) active.className = 'chart-btn bg-primary text-on-primary font-label text-[10px] font-bold px-4 py-2 rounded-full tracking-widest uppercase transition-all active:scale-95';
+
+  const now = new Date();
+  const end = now.toISOString().slice(0, 10);
+  let start;
+  if (period === 'day') {
+    const d = new Date(now); d.setDate(d.getDate() - 30);
+    start = d.toISOString().slice(0, 10);
+    document.getElementById('chart-subtitle').textContent = 'Last 30 days';
+  } else {
+    start = now.getFullYear() + '-01-01';
+    document.getElementById('chart-subtitle').textContent = now.getFullYear() + ' monthly';
+  }
+
+  try {
+    const d = await szGet('/api-sz/generation/period', {
+      usinaId, start, end, period,
+      uniteMonths: 'false', unitePortals: 'false'
+    });
+    const dados = d.dados || [];
+
+    if (!dados.length) {
+      document.getElementById('chart-container').innerHTML = '<p class="text-on-surface-variant text-sm w-full text-center">No data available</p>';
+      document.getElementById('chart-labels').innerHTML = '';
+      return;
+    }
+
+    const values = dados.map(x => parseFloat(x.quantidade || 0));
+    const forecasts = dados.map(x => parseFloat(x.prognostico || 0));
+    const maxVal = Math.max(...values, ...forecasts, 1);
+
+    let barsHtml = '';
+    dados.forEach((item, i) => {
+      const v = values[i];
+      const f = forecasts[i];
+      const hPct = (v / maxVal * 100).toFixed(1);
+      const dateStr = item.data || '';
+      const label = period === 'day'
+        ? dateStr.slice(8, 10)
+        : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(dateStr.slice(5,7))-1] || '';
+
+      barsHtml += `<div class="flex-1 min-w-[12px] flex flex-col items-center gap-0.5 group relative" title="${label}: ${v.toFixed(1)} kWh">
+        <div class="w-full rounded-t-md bar-grow" style="height:${hPct}%;animation-delay:${i*30}ms;background:${v >= f ? 'rgba(204,255,128,.8)' : 'rgba(204,255,128,.25)'}"></div>
+      </div>`;
+    });
+
+    document.getElementById('chart-container').innerHTML = barsHtml;
+
+    const step = Math.max(1, Math.floor(dados.length / 6));
+    let labelsHtml = '';
+    for (let i = 0; i < dados.length; i += step) {
+      const dateStr = dados[i].data || '';
+      const label = period === 'day'
+        ? dateStr.slice(5, 10).replace('-', '/')
+        : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(dateStr.slice(5,7))-1] || '';
+      labelsHtml += `<span>${label}</span>`;
+    }
+    document.getElementById('chart-labels').innerHTML = labelsHtml;
+
+  } catch (e) {
+    console.warn('Chart fetch failed:', e);
+    document.getElementById('chart-container').innerHTML = '<p class="text-error text-sm w-full text-center">Failed to load chart</p>';
+  }
+}
+</script>
+
+</body>
+</html>
