@@ -381,13 +381,31 @@ input::placeholder{color:#6e7681}
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <script>
-// ── API Layer (uses Flask proxy) ────────────────────────────────
-const API = '';  // same-origin Flask proxy
+// ── API Layer — auto-detects local proxy vs direct SolarZ ───────
+const SZ = 'https://app.solarz.com.br';
+const isLocal = ['localhost','127.0.0.1','10.'].some(h => location.hostname.startsWith(h) || location.hostname === 'localhost');
+let token = '', usinaId = '', usinaUuid = '';
 let plantInfo = {}, refreshTimer = null;
 
-async function api(path, opts = {}) {
-  const res = await fetch(API + path, opts);
-  if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+const szHeaders = () => ({
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer ' + token,
+});
+
+// Proxy call (local Flask)
+async function proxyApi(path, opts = {}) {
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+// Direct SolarZ call
+async function szGet(path, params = {}) {
+  const url = new URL(SZ + path);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const res = await fetch(url, { headers: szHeaders() });
+  if (!res.ok) throw new Error(res.status);
   return res.json();
 }
 
@@ -413,15 +431,39 @@ async function doLogin() {
   if (!email || !pw) { err.textContent = 'Enter email and password'; err.classList.remove('hidden'); return; }
   btn.textContent = 'CONNECTING…'; btn.disabled = true; err.classList.add('hidden');
   try {
-    const d = await api('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pw })
-    });
-    if (!d.ok) throw new Error(d.error || 'Login failed');
-    plantInfo = d.plant || {};
+    if (isLocal) {
+      // Use Flask proxy
+      const d = await proxyApi('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pw })
+      });
+      if (!d.ok) throw new Error(d.error || 'Login failed');
+      plantInfo = d.plant || {};
+      usinaId = plantInfo.id || '';
+      usinaUuid = plantInfo.uuid || '';
+      document.getElementById('hero-owner').textContent = '☀️ ' + (d.owner || 'Filipe Tome Modelski');
+    } else {
+      // Direct SolarZ auth
+      const authRes = await fetch(SZ + '/cliente/authenticate', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: email, password: pw })
+      });
+      const authData = await authRes.json();
+      if (!authData.token) throw new Error(authData.error || 'Invalid credentials');
+      token = authData.token;
+
+      const ctx = await szGet('/cliente/context');
+      const usinas = ctx.usinas || [];
+      const plant = usinas[0] || {};
+      usinaId = plant.id || '';
+      usinaUuid = plant.uuid || '';
+      plantInfo = { id: usinaId, uuid: usinaUuid, name: plant.nome || 'Usina Chácara', power: plant.potencia || 0, modules: plant.quantidadeModulos || 0 };
+      document.getElementById('hero-owner').textContent = '☀️ ' + (ctx.nome || 'Filipe Tome Modelski');
+    }
+
     document.getElementById('hdr-plant').textContent = plantInfo.name || 'Usina Chácara';
-    document.getElementById('hero-owner').textContent = '☀️ ' + (d.owner || 'Filipe Tome Modelski');
     document.getElementById('d-plant-name').textContent = plantInfo.name || 'Solar Array';
     document.getElementById('d-plant-info').textContent = (plantInfo.power || '—') + 'W · ' + (plantInfo.modules || '—') + ' modules';
     document.getElementById('d-capacity').textContent = (plantInfo.power || '—') + 'W';
@@ -452,7 +494,13 @@ async function refreshAll() {
 // ── Status ──────────────────────────────────────────────────────
 async function loadStatus() {
   try {
-    const d = await api('/api/status');
+    let d;
+    if (isLocal) {
+      d = await proxyApi('/api/status');
+    } else {
+      try { d = await szGet('/shareable/currently/usina', { id: usinaId }); }
+      catch { d = await szGet('/api-sz/app/cliente/plant/' + usinaUuid + '/lastReport'); }
+    }
     const power = parseFloat(d.potenciaAtiva || d.potencia || 0);
     const voltage = parseFloat(d.tensaoRede || d.voltage || 0);
     const freq = parseFloat(d.frequenciaRede || d.frequency || 0);
@@ -488,7 +536,10 @@ async function loadStatus() {
 // ── Today ───────────────────────────────────────────────────────
 async function loadToday() {
   try {
-    const d = await api('/api/today');
+    const today = new Date().toISOString().slice(0,10);
+    const d = isLocal
+      ? await proxyApi('/api/today')
+      : await szGet('/api-sz/generation/day', { usinaId, day: today, unitePortals: 'true' });
     const gen = parseFloat(d.totalGerado || 0);
     const progs = d.prognosticos || {};
     const fc = parseFloat(Object.values(progs)[0] || 0);
@@ -512,7 +563,9 @@ async function loadToday() {
 // ── Economy ─────────────────────────────────────────────────────
 async function loadEconomy() {
   try {
-    const d = await api('/api/economy');
+    const d = isLocal
+      ? await proxyApi('/api/economy')
+      : await szGet('/api-sz/app/cliente/home/economizados');
     const total = parseFloat(d.totalEconomizado || d.total || 0);
     const retorno = parseFloat(d.retornoTotal || d.totalRetorno || 0);
 
@@ -550,8 +603,8 @@ async function loadEconomy() {
 async function loadUnits() {
   try {
     const [sums, credit] = await Promise.all([
-      api('/api/units/sums'),
-      api('/api/units/credit').catch(() => null)
+      isLocal ? proxyApi('/api/units/sums') : szGet('/api-sz/app/cliente/unidades/sums'),
+      (isLocal ? proxyApi('/api/units/credit') : szGet('/api-sz/app/cliente/unidades/credit')).catch(() => null)
     ]);
     const d = Array.isArray(sums) ? sums[0] || {} : sums;
     const totalKwh = parseFloat(d.totalGerado || d.geracaoTotal || 0);
@@ -634,7 +687,9 @@ async function loadSunInfo() {
 // ── Report ──────────────────────────────────────────────────────
 async function loadReport() {
   try {
-    const d = await api('/api/report');
+    const d = isLocal
+      ? await proxyApi('/api/report')
+      : await szGet('/api-sz/app/cliente/plant/' + usinaUuid + '/lastReport');
     const items = [
       ['Period', (d.periodoInicio||'').slice(0,10) + ' → ' + (d.periodoFim||'').slice(0,10)],
       ['Generation', parseFloat(d.geracaoTotal||0).toFixed(1) + ' kWh'],
@@ -675,7 +730,9 @@ async function loadChart(period) {
   else { start = '2020-01-01'; periodParam = 'year'; }
 
   try {
-    const d = await api('/api/generation?start=' + start + '&end=' + end + '&period=' + periodParam);
+    const d = isLocal
+      ? await proxyApi('/api/generation?start=' + start + '&end=' + end + '&period=' + periodParam)
+      : await szGet('/api-sz/generation/period', { usinaId, start, end, period: periodParam, uniteMonths: 'false', unitePortals: 'false' });
     const dados = d.dados || [];
     if (!dados.length) { document.getElementById('chart-box').innerHTML = '<p class="text-t3 text-sm w-full text-center">No data</p>'; return; }
 
@@ -735,7 +792,10 @@ async function loadChart(period) {
 async function loadMonthly() {
   try {
     const now = new Date();
-    const d = await api('/api/units/period?start=' + now.getFullYear() + '-01-01&end=' + now.toISOString().slice(0,10));
+    const yr = now.getFullYear() + '-01-01', end = now.toISOString().slice(0,10);
+    const d = isLocal
+      ? await proxyApi('/api/units/period?start=' + yr + '&end=' + end)
+      : await szGet('/api-sz/app/cliente/unidades', { start: yr, end });
     const items = Array.isArray(d) ? d : [];
     if (!items.length) { document.getElementById('monthly-chart').innerHTML = '<p class="text-t3 text-sm w-full text-center">No data</p>'; return; }
 
