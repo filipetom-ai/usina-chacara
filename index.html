@@ -403,10 +403,12 @@ async function proxyApi(path, opts = {}) {
 // Direct SolarZ call
 async function szGet(path, params = {}) {
   const url = new URL(SZ + path);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, String(v)));
   const res = await fetch(url, { headers: szHeaders() });
-  if (!res.ok) throw new Error(res.status);
-  return res.json();
+  if (!res.ok) { console.error('szGet FAIL', path, res.status); throw new Error(res.status); }
+  const data = await res.json();
+  console.log('szGet OK', path, typeof data, Array.isArray(data) ? 'len='+data.length : Object.keys(data).join(','));
+  return data;
 }
 
 // ── Tab nav ─────────────────────────────────────────────────────
@@ -663,7 +665,7 @@ async function loadUnits() {
       const creditVal = parseFloat(c0.valorCredito || c0.creditoValor || 0);
       if (creditVal > 0) document.getElementById('k-credits-val').textContent = 'R$' + creditVal.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
     }
-  } catch (e) { console.warn('Units:', e); }
+  } catch (e) { console.error('Units:', e.message, e); }
 }
 
 // ── Sun info ────────────────────────────────────────────────────
@@ -783,8 +785,8 @@ async function loadChart(period) {
       document.getElementById('top-days').innerHTML = '';
     }
   } catch (e) {
-    console.warn('Chart:', e);
-    document.getElementById('chart-box').innerHTML = '<p class="text-red text-sm w-full text-center">Failed</p>';
+    console.error('Chart:', e.message, e);
+    document.getElementById('chart-box').innerHTML = '<p class="text-red text-sm w-full text-center">Failed: ' + e.message + '</p>';
   }
 }
 
@@ -818,7 +820,7 @@ async function loadMonthly() {
       const ref = m.referencia||m.mes||''; const idx = parseInt(ref.slice(5,7))-1;
       return '<span>'+(months[idx]||'')+'</span>';
     }).join('');
-  } catch (e) { console.warn('Monthly:', e); }
+  } catch (e) { console.error('Monthly:', e.message, e); }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
