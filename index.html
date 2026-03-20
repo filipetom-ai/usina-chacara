@@ -587,7 +587,7 @@ async function loadEconomy() {
       let html = '', lbl = '';
       meses.forEach((m, i) => {
         const h = (vals[i] / mx * 100).toFixed(1);
-        html += '<div class="flex-1 min-w-[12px]"><div class="w-full rounded-t bar-anim" style="height:' + h + '%;background:#f5a623;animation-delay:' + (i*30) + 'ms"></div></div>';
+        html += '<div class="flex-1 min-w-[12px] h-full flex items-end"><div class="w-full rounded-t bar-anim" style="height:' + h + '%;background:#f5a623;min-height:1px;animation-delay:' + (i*30) + 'ms"></div></div>';
       });
       document.getElementById('savings-chart').innerHTML = html;
       const step = Math.max(1, Math.floor(meses.length / 6));
@@ -756,7 +756,7 @@ async function loadChart(period) {
       const v = vals[i], f = fcs[i];
       const h = (v / mx * 100).toFixed(1);
       const color = v >= f ? '#f5a623' : 'rgba(245,166,35,.3)';
-      html += '<div class="flex-1 min-w-[6px]" title="' + v.toFixed(1) + ' kWh"><div class="w-full rounded-t bar-anim" style="height:' + h + '%;background:' + color + ';animation-delay:' + (i*15) + 'ms"></div></div>';
+      html += '<div class="flex-1 min-w-[4px] h-full flex items-end" title="' + v.toFixed(1) + ' kWh"><div class="w-full rounded-t bar-anim" style="height:' + h + '%;background:' + color + ';min-height:1px;animation-delay:' + (i*15) + 'ms"></div></div>';
     });
     document.getElementById('chart-box').innerHTML = html;
 
@@ -798,22 +798,27 @@ async function loadMonthly() {
     const d = isLocal
       ? await proxyApi('/api/units/period?start=' + yr + '&end=' + end)
       : await szGet('/api-sz/app/cliente/unidades', { start: yr, end });
-    const items = Array.isArray(d) ? d : [];
+    // Handle wrapped responses: could be array, or {content:[...]}, {unidades:[...]}, or {dados:[...]}
+    let items;
+    if (Array.isArray(d)) items = d;
+    else if (d && typeof d === 'object') items = d.content || d.unidades || d.dados || d.meses || [];
+    else items = [];
+    console.log('Monthly items:', items.length, items.length > 0 ? Object.keys(items[0]).join(',') : 'empty');
     if (!items.length) { document.getElementById('monthly-chart').innerHTML = '<p class="text-t3 text-sm w-full text-center">No data</p>'; return; }
 
     const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    const gen = items.map(m => parseFloat(m.gerado||m.geracao||m.totalGerado||0));
-    const con = items.map(m => parseFloat(m.consumido||m.consumo||m.totalConsumido||0));
-    const cred = items.map(m => parseFloat(m.credito||m.saldoCredito||m.creditoCorrente||0));
+    const gen = items.map(m => parseFloat(m.gerado||m.geracao||m.totalGerado||m.geracaoTotal||0));
+    const con = items.map(m => parseFloat(m.consumido||m.consumo||m.totalConsumido||m.consumoTotal||0));
+    const cred = items.map(m => parseFloat(m.credito||m.saldoCredito||m.creditoCorrente||m.creditoAtual||0));
     const mx = Math.max(...gen, ...con, ...cred, 1);
 
     let html = '';
     items.forEach((m, i) => {
       const gH = (gen[i]/mx*100).toFixed(1), cH = (con[i]/mx*100).toFixed(1), crH = (cred[i]/mx*100).toFixed(1);
-      html += '<div class="flex-1 min-w-[16px] flex items-end gap-[1px]">' +
-        '<div class="flex-1 rounded-t bar-anim" style="height:'+gH+'%;background:#f5a623;animation-delay:'+i*40+'ms"></div>' +
-        '<div class="flex-1 rounded-t bar-anim" style="height:'+cH+'%;background:#58a6ff;animation-delay:'+(i*40+15)+'ms"></div>' +
-        '<div class="flex-1 rounded-t bar-anim" style="height:'+crH+'%;background:#3fb950;animation-delay:'+(i*40+30)+'ms"></div></div>';
+      html += '<div class="flex-1 min-w-[16px] h-full flex items-end gap-[1px]">' +
+        '<div class="flex-1 rounded-t bar-anim" style="height:'+gH+'%;background:#f5a623;min-height:1px;animation-delay:'+i*40+'ms"></div>' +
+        '<div class="flex-1 rounded-t bar-anim" style="height:'+cH+'%;background:#58a6ff;min-height:1px;animation-delay:'+(i*40+15)+'ms"></div>' +
+        '<div class="flex-1 rounded-t bar-anim" style="height:'+crH+'%;background:#3fb950;min-height:1px;animation-delay:'+(i*40+30)+'ms"></div></div>';
     });
     document.getElementById('monthly-chart').innerHTML = html;
     document.getElementById('monthly-labels').innerHTML = items.map((m,i) => {
